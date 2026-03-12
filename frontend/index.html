@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Analytics Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="loadingOverlay">
+    Loading analytics...
+  </div>
+  <header>
+    <h1>Sales Analytics Dashboard</h1>
+  </header>
+
+  <main class="dashboard">
+    <button id="editDashboardBtn" class="edit-dashboard-btn">Edit Dashboard</button>
+    <button id="addVisualBtn" class="edit-dashboard-btn">Add Visual</button>
+    <button id="lockLayoutBtn" class="edit-dashboard-btn">Lock Layout</button>
+    <section class="filters">
+      <label>Start Date</label>
+      <input type="date" id="startDate" />
+      <label>End Date</label>
+      <input type="date" id="endDate" />
+      <label>Agent</label>
+      <select id="agentFilter">
+        <option value="">All Agents</option>
+      </select>
+    </section>
+    <div class="quick-filters">
+      <button data-range="today">Today</button>
+      <button data-range="7">Last 7 Days</button>
+      <button data-range="30">Last 30 Days</button>
+      <div class="dropdown">
+        <button id="monthlyBtn">Monthly</button>
+        <div id="monthMenu" class="dropdown-menu"></div>
+      </div>
+      <button data-range="quarter">Quarterly</button>
+      <div class="dropdown">
+        <button id="yearBtn">Yearly</button>
+        <div id="yearMenu" class="dropdown-menu"></div>
+      </div>
+      <button data-range="all">All Time</button>
+    </div>
+    <div class="filter-summary-container">
+      <div id="filterSummary" class="filter-summary">Showing: All Data</div>
+      <button id="clearFiltersBtn" class="clear-filters">Clear All</button>
+    </div>
+    <!-- year selector removed; using dropdown -->
+
+    <!-- Dashboard tiles container -->
+    <div id="dashboardGrid">
+
+      <!-- Metric tile: Total Sales -->
+      <div class="dashboard-tile tile-small" data-tile="total-sales">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Total Sales</h3>
+          <p class="value" id="total-sales">0</p>
+        </div>
+      </div>
+
+      <!-- Metric tile: Total Revenue -->
+      <div class="dashboard-tile tile-small" data-tile="total-revenue">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Total Revenue</h3>
+          <p class="value" id="total-revenue">0</p>
+          <div id="revenueGrowth" class="growth-indicator"></div>
+        </div>
+      </div>
+
+      <!-- Metric tile: Total Customers -->
+      <div class="dashboard-tile tile-small" data-tile="total-customers">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Total Customers</h3>
+          <p class="value" id="total-customers">0</p>
+        </div>
+      </div>
+
+      <!-- Metric tile: Repeat Customers -->
+      <div class="dashboard-tile tile-small" data-tile="repeatCustomers">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Repeat Customers</h3>
+          <p class="value" id="repeatCustomers">0</p>
+        </div>
+      </div>
+
+      <!-- Chart tiles -->
+      <div class="dashboard-tile tile-medium" data-tile="revenue-agent">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Revenue by Agent</h3>
+          <canvas id="chart-agent"></canvas>
+        </div>
+      </div>
+
+      <div class="dashboard-tile tile-medium" data-tile="sales-product">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Sales by Product</h3>
+          <canvas id="chart-product"></canvas>
+        </div>
+      </div>
+
+      <div class="dashboard-tile tile-medium" data-tile="sales-time">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Sales Over Time</h3>
+          <canvas id="chart-sales-time"></canvas>
+        </div>
+      </div>
+
+      <div class="dashboard-tile tile-medium" data-tile="top-customers">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Top Customers</h3>
+          <canvas id="chart-customers"></canvas>
+        </div>
+      </div>
+
+      <div class="dashboard-tile tile-medium" data-tile="distribution">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Customer Distribution</h3>
+          <canvas id="chart-distribution"></canvas>
+        </div>
+      </div>
+
+      <div class="dashboard-tile tile-medium" data-tile="revenue-location">
+        <div class="tile-toolbar">
+          <button class="tile-settings">⚙</button>
+          <button class="tile-duplicate">⧉</button>
+          <button class="tile-up">⬆</button>
+          <button class="tile-down">⬇</button>
+          <button class="tile-remove">🗑</button>
+        </div>
+        <div class="tile-content">
+          <h3>Revenue by Location</h3>
+          <canvas id="chart-location"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+
+  <!-- settings panel -->
+  <div id="chartSettingsPanel" class="settings-panel">
+
+    <div class="settings-header">
+      <h3>Chart Settings</h3>
+      <button id="closeSettingsPanel">✕</button>
+    </div>
+
+    <h4>General</h4>
+
+    <label>Title</label>
+    <input type="text" id="chartTitleInput">
+
+    <label>Chart Type</label>
+    <select id="chartTypeSelect">
+      <option value="bar">Bar</option>
+      <option value="line">Line</option>
+      <option value="pie">Pie</option>
+      <option value="doughnut">Doughnut</option>
+    </select>
+
+    <h4>Colors</h4>
+
+    <label>Primary Color</label>
+    <input type="color" id="chartColorInput">
+
+    <label>Secondary Color</label>
+    <input type="color" id="chartColorSecondary">
+
+    <label>
+      <input type="checkbox" id="chartGradientToggle">
+      Enable Gradient
+    </label>
+
+    <h4>Labels</h4>
+
+    <label>
+      <input type="checkbox" id="showLegendToggle">
+      Show Legend
+    </label>
+
+    <label>
+      <input type="checkbox" id="showDataLabelsToggle">
+      Show Data Labels
+    </label>
+
+    <h4>Axes</h4>
+
+    <label>
+      <input type="checkbox" id="showGridToggle">
+      Show Grid
+    </label>
+
+    <label>
+      <input type="checkbox" id="showAxisLabelsToggle">
+      Show Axis Labels
+    </label>
+
+    <h4>Layout</h4>
+
+    <label>Chart Height</label>
+    <input type="range" id="chartHeightInput" min="200" max="700">
+
+    <button id="applyChartSettings">Apply</button>
+
+  </div>
+</body>
+</html>
