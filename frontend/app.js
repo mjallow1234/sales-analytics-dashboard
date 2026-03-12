@@ -143,7 +143,7 @@ async function loadDashboard(filters = {}) {
     updateFilterSummary(finalFilters);
 
     // build url with params (use backend port explicitly)
-    let url = 'http://localhost:3000/analytics';
+    let url = '/analytics';
     const params = new URLSearchParams(finalFilters);
     if (params.toString()) url += '?' + params.toString();
 
