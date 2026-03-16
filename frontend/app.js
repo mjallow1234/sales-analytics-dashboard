@@ -280,6 +280,8 @@ let productChart;
 // load when page opens
 
 function renderCharts(datasets) {
+  // Ensure Chart.js does not enforce an internal aspect ratio (allows tile resizing)
+  // by using `maintainAspectRatio: false` on each chart.
   // top customers - bar
   const customersCanvas = document.getElementById('chart-customers');
   if (!customersCanvas) return;
