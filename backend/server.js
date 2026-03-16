@@ -14,16 +14,17 @@ let cacheTimestamp = 0;
 const CACHE_TTL = 300000; // 5 minutes
 
 app.get('/analytics', async (req, res) => {
+  console.log('Analytics request received');
   try {
     const { startDate, endDate, agent } = req.query;
 
     // Serve from cache if recent
     if (analyticsCache && Date.now() - cacheTimestamp < CACHE_TTL) {
-      console.log('Serving analytics from cache');
+      console.log('Using cached analytics');
       return res.json(analyticsCache);
     }
 
-    console.log('Refreshing analytics cache from Google Sheets');
+    console.log('Refreshing analytics cache');
     const rows = await getSalesData();
     const analytics = processSales(rows, { startDate, endDate, agent });
 
@@ -31,9 +32,12 @@ app.get('/analytics', async (req, res) => {
     cacheTimestamp = Date.now();
 
     res.json(analytics);
-  } catch (err) {
-    console.error('Error fetching analytics:', err);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error) {
+    console.error('Analytics endpoint error:', error);
+    res.status(500).json({
+      error: 'Analytics service unavailable',
+      message: 'Failed to retrieve analytics data'
+    });
   }
 });
 
