@@ -169,15 +169,21 @@ async function loadDashboard(filters = {}) {
     const agentLabels = topAgents.map(a => a.agent);
     const agentValues = topAgents.map(a => a.revenue);
 
+    // Preserve existing salesOverTime shape for the current chart, and also provide an array for the new trend chart
+    const salesOverTimeRaw = data.salesOverTime || {};
+    const salesOverTimeArray = Array.isArray(salesOverTimeRaw)
+      ? salesOverTimeRaw
+      : Object.entries(salesOverTimeRaw).map(([date, revenue]) => ({ date, revenue }));
+
     const datasets = {
       revenueByAgent: { labels: agentLabels, values: agentValues },
       topCustomers: { labels: customerLabels, values: customerValues },
       salesByProduct: { labels: productLabels, values: productValues },
-      salesOverTime: data.salesOverTime || {},
+      salesOverTime: salesOverTimeRaw,
+      salesOverTimeArray,
       purchaseDistribution: data.purchaseDistribution || { onePurchase:0, twoPurchases:0, threePlusPurchases:0 },
       revenueByLocation: { labels: locationLabels, values: locationValues }
-    };
-    try {
+    };    try {
       renderCharts(datasets);
     } catch(err) {
       console.error("Chart rendering failed:", err);
@@ -259,6 +265,7 @@ function populateAgentDropdown(data) {
 // global chart references
 let revenueChart;
 let salesOverTimeChart;
+let dailyRevenueChart;
 let customerDistributionChart;
 let locationChart;
 let topCustomersChart;
@@ -449,6 +456,49 @@ function renderCharts(datasets) {
     window.chartInstances["chart-sales-time"] = salesOverTimeChart;
     const tileTime = document.querySelector('[data-tile="sales-time"]');
     if (tileTime) applyStoredSettings(salesOverTimeChart, tileTime);
+  }
+
+  // daily revenue trend - line
+  const dailyCanvas = document.getElementById('dailyRevenueChart');
+  if (dailyCanvas) {
+    const trendData = datasets.salesOverTimeArray || [];
+    const dates = trendData.map(d => d.date);
+    const revenue = trendData.map(d => d.revenue);
+    const dailyCtx = dailyCanvas.getContext('2d');
+
+    if (dailyRevenueChart) {
+      dailyRevenueChart.data.labels = dates;
+      dailyRevenueChart.data.datasets[0].data = revenue;
+      dailyRevenueChart.update();
+      const tile = document.querySelector('[data-tile="daily-revenue-trend"]');
+      if (tile) applyStoredSettings(dailyRevenueChart, tile);
+    } else {
+      dailyRevenueChart = new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'Revenue',
+            data: revenue,
+            tension: 0.3,
+            borderColor: colors[0],
+            backgroundColor: colors[0] + '40',
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+      if (!window.chartInstances) window.chartInstances = {};
+      window.chartInstances["dailyRevenueChart"] = dailyRevenueChart;
+      const tile = document.querySelector('[data-tile="daily-revenue-trend"]');
+      if (tile) applyStoredSettings(dailyRevenueChart, tile);
+    }
   }
 
   // customer purchase distribution - pie
