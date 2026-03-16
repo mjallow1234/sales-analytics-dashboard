@@ -724,6 +724,7 @@ window.addEventListener('DOMContentLoaded', () => {
 <h3>New Visual</h3>
 <canvas></canvas>
 </div>
+<div class="tile-resize-handle"></div>
 `;
       container.appendChild(tile);
       setupTileControls();
@@ -745,6 +746,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // drag and drop reordering (enabled only in edit mode)
   document.addEventListener('dragstart', e => {
     if (!editMode) return;
+    if (e.target.closest('.tile-resize-handle')) return;
     const tile = e.target.closest('.dashboard-tile');
     if (tile) {
       draggedTile = tile;
@@ -770,6 +772,42 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('dragend', () => {
     draggedTile = null;
+  });
+
+  // resize tiles via mouse drag handle (edit mode only)
+  document.addEventListener('mousedown', e => {
+    if (!editMode) return;
+    const handle = e.target.closest('.tile-resize-handle');
+    if (!handle) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const tile = handle.closest('.dashboard-tile');
+    if (!tile) return;
+
+    const startY = e.clientY;
+    const startHeight = tile.offsetHeight;
+
+    function resizeMove(ev) {
+      const newHeight = startHeight + (ev.clientY - startY);
+      if (newHeight > 120) {
+        tile.style.height = `${newHeight}px`;
+      }
+    }
+
+    function stopResize() {
+      document.removeEventListener('mousemove', resizeMove);
+      document.removeEventListener('mouseup', stopResize);
+
+      // Persist height in chart settings store
+      const key = tile.dataset.tile;
+      if (!chartSettingsStore[key]) chartSettingsStore[key] = {};
+      chartSettingsStore[key].height = tile.style.height;
+      localStorage.setItem('chartSettings', JSON.stringify(chartSettingsStore));
+    }
+
+    document.addEventListener('mousemove', resizeMove);
+    document.addEventListener('mouseup', stopResize);
   });
 
   // open settings panel when gear clicked (delegated)

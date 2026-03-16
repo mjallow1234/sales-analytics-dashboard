@@ -66,6 +66,22 @@ body {
   gap: 4px;
 }
 
+.tile-resize-handle {
+  display: none;
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  bottom: 4px;
+  right: 4px;
+  cursor: se-resize;
+  background: rgba(0,0,0,0.3);
+  border-radius: 3px;
+}
+
+.edit-mode .tile-resize-handle {
+  display: block;
+}
+
 .settings-panel {
   position: fixed;
   top: 0;
