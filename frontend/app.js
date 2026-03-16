@@ -789,28 +789,37 @@ window.addEventListener('DOMContentLoaded', () => {
     const startHeight = tile.offsetHeight;
 
     function resizeMove(ev) {
-      const newHeight = startHeight + (ev.clientY - startY);
-      if (newHeight > 120) {
-        tile.style.height = `${newHeight}px`;
-        const canvas = tile.querySelector('canvas');
-        if (canvas) {
-          const chart = (canvas.chartInstance || window.chartInstances?.[canvas.id]);
-          if (chart && typeof chart.resize === 'function') {
-            chart.resize();
-          }
-        }
-      }
+      const delta = ev.clientY - startY;
+      let newHeight = startHeight + delta;
+
+      const minHeight = 220;
+      const maxHeight = 900;
+      newHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+
+      tile.style.height = `${newHeight}px`;
     }
 
     function stopResize() {
       document.removeEventListener('mousemove', resizeMove);
       document.removeEventListener('mouseup', stopResize);
 
+      const canvas = tile.querySelector('canvas');
+      if (canvas) {
+        const chart =
+          canvas.chartInstance ||
+          (window.chartInstances && window.chartInstances[canvas.id]);
+        if (chart && typeof chart.resize === 'function') {
+          chart.resize();
+        }
+      }
+
       // Persist height in chart settings store
       const key = tile.dataset.tile;
       if (!chartSettingsStore[key]) chartSettingsStore[key] = {};
       chartSettingsStore[key].height = tile.style.height;
       localStorage.setItem('chartSettings', JSON.stringify(chartSettingsStore));
+
+      saveDashboardLayout();
     }
 
     document.addEventListener('mousemove', resizeMove);
