@@ -235,11 +235,17 @@ function processSales(data, filters = {}) {
     revenueGrowth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
   }
 
+  // leaderboard of agents by total revenue (descending)
+  const agentLeaderboard = Object.entries(revenueByAgent)
+    .map(([agent, revenue]) => ({ agent, revenue }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   return {
     totalSales,
     totalRevenue,
     totalCustomers: phones.size,
     revenueByAgent,
+    agentLeaderboard,
     repeatCustomers,
     topCustomers,
     purchaseDistribution,
