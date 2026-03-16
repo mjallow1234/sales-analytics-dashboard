@@ -674,6 +674,13 @@ window.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const tile = btn.closest('.dashboard-tile');
         const clone = tile.cloneNode(true);
+
+        const canvas = clone.querySelector('canvas');
+        if (canvas) {
+          const baseId = canvas.id || 'chart';
+          canvas.id = `${baseId}-${Date.now()}`;
+        }
+
         tile.parentNode.insertBefore(clone, tile.nextSibling);
         setupTileControls();
         enableTitleEditing();
