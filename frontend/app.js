@@ -71,7 +71,12 @@ function applyStoredSettings(chart, tile) {
     if (titleEl) titleEl.innerText = settings.title;
   }
   if (settings.height) {
-    tile.style.height = settings.height;
+    const content = tile.querySelector('.tile-content');
+    if (content) {
+      content.style.height = settings.height;
+    } else {
+      tile.style.height = settings.height;
+    }
   }
   if (chart.options) {
     if (chart.options.plugins && chart.options.plugins.legend)
@@ -786,8 +791,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     e.preventDefault();
 
+    const content = tile.querySelector('.tile-content');
+    if (!content) return;
+
     const startY = e.clientY;
-    const startHeight = tile.getBoundingClientRect().height;
+    const startHeight = content.getBoundingClientRect().height;
 
     function onMouseMove(ev) {
       const delta = ev.clientY - startY;
@@ -799,7 +807,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
       newHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
 
-      tile.style.height = newHeight + 'px';
+      content.style.height = newHeight + 'px';
     }
 
     function onMouseUp() {

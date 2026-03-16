@@ -50,6 +50,11 @@ body {
   grid-column: span 12;
 }
 
+.tile-content {
+  height: auto;
+  min-height: 200px;
+}
+
 .tile-content canvas {
   width: 100% !important;
   height: 100% !important;
