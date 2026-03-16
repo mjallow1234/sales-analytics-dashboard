@@ -775,55 +775,51 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // resize tiles via mouse drag handle (edit mode only)
-  document.addEventListener('mousedown', e => {
+  document.addEventListener('mousedown', function (e) {
     if (!editMode) return;
+
     const handle = e.target.closest('.tile-resize-handle');
     if (!handle) return;
-    e.preventDefault();
-    e.stopPropagation();
 
     const tile = handle.closest('.dashboard-tile');
     if (!tile) return;
 
-    const startY = e.clientY;
-    const startHeight = tile.offsetHeight;
+    e.preventDefault();
 
-    function resizeMove(ev) {
+    const startY = e.clientY;
+    const startHeight = tile.getBoundingClientRect().height;
+
+    function onMouseMove(ev) {
       const delta = ev.clientY - startY;
+
       let newHeight = startHeight + delta;
 
       const minHeight = 220;
       const maxHeight = 900;
+
       newHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
 
-      tile.style.height = `${newHeight}px`;
+      tile.style.height = newHeight + 'px';
     }
 
-    function stopResize() {
-      document.removeEventListener('mousemove', resizeMove);
-      document.removeEventListener('mouseup', stopResize);
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
 
       const canvas = tile.querySelector('canvas');
       if (canvas) {
         const chart =
           canvas.chartInstance ||
           (window.chartInstances && window.chartInstances[canvas.id]);
-        if (chart && typeof chart.resize === 'function') {
-          chart.resize();
-        }
-      }
 
-      // Persist height in chart settings store
-      const key = tile.dataset.tile;
-      if (!chartSettingsStore[key]) chartSettingsStore[key] = {};
-      chartSettingsStore[key].height = tile.style.height;
-      localStorage.setItem('chartSettings', JSON.stringify(chartSettingsStore));
+        if (chart) chart.resize();
+      }
 
       saveDashboardLayout();
     }
 
-    document.addEventListener('mousemove', resizeMove);
-    document.addEventListener('mouseup', stopResize);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   });
 
   // open settings panel when gear clicked (delegated)
