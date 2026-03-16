@@ -165,8 +165,12 @@ async function loadDashboard(filters = {}) {
     const customerLabels = (data.topCustomers || []).map(c => c.name);
     const customerValues = (data.topCustomers || []).map(c => c.totalSpent);
 
+    const topAgents = (data.agentLeaderboard || []).slice(0, 10);
+    const agentLabels = topAgents.map(a => a.agent);
+    const agentValues = topAgents.map(a => a.revenue);
+
     const datasets = {
-      revenueByAgent: { labels: Object.keys(data.revenueByAgent), values: Object.values(data.revenueByAgent) },
+      revenueByAgent: { labels: agentLabels, values: agentValues },
       topCustomers: { labels: customerLabels, values: customerValues },
       salesByProduct: { labels: productLabels, values: productValues },
       salesOverTime: data.salesOverTime || {},
