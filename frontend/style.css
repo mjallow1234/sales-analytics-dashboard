@@ -51,7 +51,12 @@ body {
 
 .tile-content canvas {
   width: 100% !important;
-  height: 320px !important;
+  height: 100% !important;
+}
+
+.dashboard-tile canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .tile-toolbar {

@@ -792,6 +792,13 @@ window.addEventListener('DOMContentLoaded', () => {
       const newHeight = startHeight + (ev.clientY - startY);
       if (newHeight > 120) {
         tile.style.height = `${newHeight}px`;
+        const canvas = tile.querySelector('canvas');
+        if (canvas) {
+          const chart = (canvas.chartInstance || window.chartInstances?.[canvas.id]);
+          if (chart && typeof chart.resize === 'function') {
+            chart.resize();
+          }
+        }
       }
     }
 
