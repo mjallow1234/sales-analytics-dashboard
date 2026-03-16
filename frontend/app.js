@@ -27,6 +27,7 @@ let chartFilters = {
 
 // edit mode state
 let editMode = false;
+let draggedTile = null;
 let activeChart = null;
 let activeTile = null;
 
@@ -639,6 +640,15 @@ window.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('edit-mode', editMode);
     document.getElementById('editDashboardBtn').innerText =
       editMode ? 'Exit Edit Mode' : 'Edit Dashboard';
+
+    // enable/disable dragging when in edit mode
+    document.querySelectorAll('.dashboard-tile').forEach(tile => {
+      if (editMode) {
+        tile.setAttribute('draggable', 'true');
+      } else {
+        tile.removeAttribute('draggable');
+      }
+    });
   });
 
   // tile controls (up/down/remove)
@@ -731,6 +741,36 @@ window.addEventListener('DOMContentLoaded', () => {
       document.body.classList.toggle('layout-locked', layoutLocked);
     });
   }
+
+  // drag and drop reordering (enabled only in edit mode)
+  document.addEventListener('dragstart', e => {
+    if (!editMode) return;
+    const tile = e.target.closest('.dashboard-tile');
+    if (tile) {
+      draggedTile = tile;
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  });
+
+  document.addEventListener('dragover', e => {
+    if (!editMode) return;
+    e.preventDefault();
+  });
+
+  document.addEventListener('drop', e => {
+    if (!editMode) return;
+    e.preventDefault();
+    const target = e.target.closest('.dashboard-tile');
+    if (!target || !draggedTile || target === draggedTile) return;
+
+    const container = target.parentNode;
+    container.insertBefore(draggedTile, target);
+    saveDashboardLayout();
+  });
+
+  document.addEventListener('dragend', () => {
+    draggedTile = null;
+  });
 
   // open settings panel when gear clicked (delegated)
   document.addEventListener('click', function(e) {
