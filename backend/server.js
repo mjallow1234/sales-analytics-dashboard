@@ -9,6 +9,14 @@ const { processSales } = require('./analyticsProcessor');
 const app = express();
 app.use(cors());
 
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'sales-analytics-dashboard',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 let analyticsCache = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 300000; // 5 minutes
