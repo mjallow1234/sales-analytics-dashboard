@@ -89,10 +89,13 @@ body {
   grid-row-end: span 8;
 }
 
-.location-chart-scroll {
-  max-height: 450px;
+.location-chart-container {
+  height: 420px;
   overflow-y: auto;
-  padding-right: 8px;
+}
+
+.location-chart-container canvas {
+  min-height: 800px;
 }
 
 .tile-large {

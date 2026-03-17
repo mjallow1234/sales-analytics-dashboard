@@ -283,6 +283,8 @@ async function loadDashboard(filters = {}) {
     const params = new URLSearchParams(finalFilters);
     if (params.toString()) url += '?' + params.toString();
 
+    console.log('Analytics query:', url);
+
     const res = await fetch(url);
     if (!res.ok) throw new Error('Network response not ok');
     const data = await res.json();
@@ -567,7 +569,7 @@ function renderCharts(datasets) {
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-location"] = locationChart;
-    locationCanvas.style.height = (datasets.revenueByLocation.labels.length * 28) + 'px';
+    locationCanvas.style.height = (datasets.revenueByLocation.labels.length * 40) + 'px';
     const tile = document.querySelector('[data-tile="revenue-location"]');
     if (tile) applyStoredSettings(locationChart, tile);
   }
@@ -1138,6 +1140,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if (range === 'all') {
       startDate = '';
       endDate = '';
+    }
+
+    if (range === 'quarter') {
+      const qMonth = Math.floor(today.getMonth() / 3) * 3;
+      const qStart = new Date(today.getFullYear(), qMonth, 1);
+      startDate = qStart.toISOString().split('T')[0];
     }
 
     document.getElementById('startDate').value = startDate || '';
