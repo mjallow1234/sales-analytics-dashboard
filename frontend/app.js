@@ -257,11 +257,19 @@ function enableTitleEditing() {
   });
 }
 
+function showLoadingState() {
+  document.querySelectorAll('.dashboard-tile')
+    .forEach(tile => tile.classList.add('skeleton'));
+}
+
+function hideLoadingState() {
+  document.querySelectorAll('.dashboard-tile')
+    .forEach(tile => tile.classList.remove('skeleton'));
+}
+
 async function loadDashboard(filters = {}) {
   try {
-    // show loading overlay
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'flex';
+    showLoadingState();
 
     // merge chart filters with passed filters, but strip null/empty values
     const mergedFilters = {
@@ -299,9 +307,8 @@ async function loadDashboard(filters = {}) {
 
     const locationEntries = Object.entries(data.revenueByLocation || {});
     locationEntries.sort((a, b) => b[1] - a[1]);
-    const topLocations = locationEntries.slice(0, 20);
-    const locationLabels = topLocations.map(l => l[0]);
-    const locationValues = topLocations.map(l => l[1]);
+    const locationLabels = locationEntries.map(l => l[0]);
+    const locationValues = locationEntries.map(l => l[1]);
 
     const customerLabels = (data.topCustomers || []).map(c => c.name);
     const customerValues = (data.topCustomers || []).map(c => c.totalSpent);
@@ -332,8 +339,7 @@ async function loadDashboard(filters = {}) {
   } catch (err) {
     console.error('Failed to load analytics:', err);
   } finally {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'none';
+    hideLoadingState();
   }
 }
 
@@ -430,7 +436,7 @@ function renderCharts(datasets) {
           backgroundColor: chartPalette
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: financeTooltip }, scales: { y: financeYTicks } }
+      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { tooltip: financeTooltip }, scales: { y: financeYTicks } }
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-customers"] = topCustomersChart;
@@ -460,6 +466,7 @@ function renderCharts(datasets) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
         plugins: { tooltip: financeTooltip },
         scales: { y: financeYTicks },
         onClick: (evt, elements) => {
@@ -504,6 +511,7 @@ function renderCharts(datasets) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
         plugins: { tooltip: financeTooltip },
         onClick: (evt, elements) => {
           if (!elements.length) return;
@@ -549,6 +557,7 @@ function renderCharts(datasets) {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
         plugins: { tooltip: financeTooltip },
         scales: {
           x: financeYTicks,
@@ -569,7 +578,7 @@ function renderCharts(datasets) {
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-location"] = locationChart;
-    locationCanvas.style.height = (datasets.revenueByLocation.labels.length * 40) + 'px';
+    locationCanvas.style.height = (datasets.revenueByLocation.labels.length * 35) + 'px';
     const tile = document.querySelector('[data-tile="revenue-location"]');
     if (tile) applyStoredSettings(locationChart, tile);
   }
@@ -598,7 +607,7 @@ function renderCharts(datasets) {
           fill: false,
         }],
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: financeTooltip }, scales: { y: financeYTicks } },
+      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { tooltip: financeTooltip }, scales: { y: financeYTicks } },
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-sales-time"] = salesOverTimeChart;
@@ -637,6 +646,7 @@ function renderCharts(datasets) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 800, easing: 'easeOutQuart' },
           plugins: {
             legend: { display: false },
             tooltip: financeTooltip
@@ -675,7 +685,7 @@ function renderCharts(datasets) {
           backgroundColor: [chartPalette[0], chartPalette[1], chartPalette[3]],
         }],
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: financeTooltip } },
+      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { tooltip: financeTooltip } },
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-distribution"] = customerDistributionChart;

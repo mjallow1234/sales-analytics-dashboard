@@ -89,13 +89,13 @@ body {
   grid-row-end: span 8;
 }
 
-.location-chart-container {
+.location-scroll {
   height: 420px;
   overflow-y: auto;
 }
 
-.location-chart-container canvas {
-  min-height: 800px;
+.location-scroll canvas {
+  min-height: 1200px;
 }
 
 .tile-large {
@@ -415,6 +415,23 @@ th {
 
 .edit-dashboard-btn:hover {
   background: #1d4ed8;
+}
+
+/* Loading skeleton animation */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 37%,
+    #f0f0f0 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 
