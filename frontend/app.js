@@ -567,7 +567,7 @@ function renderCharts(datasets) {
         plugins: { tooltip: financeTooltip },
         scales: {
           x: financeYTicks,
-          y: { ticks: { autoSkip: false, font: { size: 10 } } }
+          y: { ticks: { autoSkip: false, font: { size: 9 } } }
         },
         onClick: (evt, elements) => {
           if (!elements.length) return;
