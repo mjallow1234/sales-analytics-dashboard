@@ -32,7 +32,7 @@ let activeChart = null;
 let activeTile = null;
 
 // --- Preset storage system ---
-let activePresetName = 'default';
+let activePresetName = localStorage.getItem('activePreset') || 'default';
 
 function loadPresets() {
   return JSON.parse(localStorage.getItem('dashboardPresets') || '{}');
@@ -56,8 +56,27 @@ function saveActivePreset() {
   savePreset(activePresetName, order, chartSettingsStore);
 }
 
+function getCurrentLayout() {
+  return [...document.querySelectorAll('.dashboard-tile')]
+    .map(tile => tile.dataset.tile);
+}
+
 function getPresetNames() {
   return Object.keys(loadPresets());
+}
+
+function populatePresetDropdown() {
+  const select = document.getElementById('presetSelect');
+  if (!select) return;
+  const presets = getPresetNames();
+  select.innerHTML = '';
+  presets.forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  });
+  select.value = activePresetName;
 }
 
 function deletePreset(name) {
@@ -597,6 +616,43 @@ window.addEventListener('DOMContentLoaded', () => {
     activePreset.layout.forEach(name => {
       const tile = dashboard.querySelector(`[data-tile="${name}"]`);
       if (tile) dashboard.appendChild(tile);
+    });
+  }
+
+  // preset selector UI
+  populatePresetDropdown();
+
+  const presetSelect = document.getElementById('presetSelect');
+  if (presetSelect) {
+    presetSelect.addEventListener('change', e => {
+      activePresetName = e.target.value;
+      localStorage.setItem('activePreset', activePresetName);
+      location.reload();
+    });
+  }
+
+  const savePresetBtn = document.getElementById('savePresetBtn');
+  if (savePresetBtn) {
+    savePresetBtn.addEventListener('click', () => {
+      const name = prompt('Preset name:');
+      if (!name) return;
+      savePreset(name, getCurrentLayout(), chartSettingsStore);
+      activePresetName = name;
+      localStorage.setItem('activePreset', activePresetName);
+      populatePresetDropdown();
+    });
+  }
+
+  const deletePresetBtn = document.getElementById('deletePresetBtn');
+  if (deletePresetBtn) {
+    deletePresetBtn.addEventListener('click', () => {
+      if (activePresetName === 'default') {
+        alert('Default preset cannot be deleted.');
+        return;
+      }
+      deletePreset(activePresetName);
+      localStorage.setItem('activePreset', 'default');
+      location.reload();
     });
   }
 
