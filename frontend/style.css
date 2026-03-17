@@ -44,6 +44,27 @@ body {
   grid-column: span 3;
 }
 
+.tile-small .tile-content {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.tile-small .tile-content h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.tile-small .tile-content .value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+}
+
 .tile-medium {
   grid-column: span 6;
 }

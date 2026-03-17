@@ -15,6 +15,13 @@ const colors = [
   "#06b6d4"
 ];
 
+function formatNumber(value) {
+  const num = Number(value) || 0;
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+}
+
 // track which quick filter is active (null = none)
 let activeQuickFilter = null;
 
@@ -278,16 +285,29 @@ async function loadDashboard(filters = {}) {
 
 function updateCards(data) {
   const elSales = document.getElementById('total-sales');
-  if (elSales) elSales.textContent = data.totalSales;
+  if (elSales) {
+    elSales.textContent = formatNumber(data.totalSales);
+    elSales.title = Number(data.totalSales).toLocaleString();
+  }
   const elRev = document.getElementById('total-revenue');
-  if (elRev) elRev.textContent = Number(data.totalRevenue).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  if (elRev) {
+    elRev.textContent = formatNumber(data.totalRevenue);
+    elRev.title = Number(data.totalRevenue).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
   const elCust = document.getElementById('total-customers');
-  if (elCust) elCust.textContent = data.totalCustomers;
+  if (elCust) {
+    elCust.textContent = formatNumber(data.totalCustomers);
+    elCust.title = Number(data.totalCustomers).toLocaleString();
+  }
   const elRep = document.getElementById('repeatCustomers');
-  if (elRep) elRep.textContent = data.repeatCustomers || 0;
+  if (elRep) {
+    const val = data.repeatCustomers || 0;
+    elRep.textContent = formatNumber(val);
+    elRep.title = Number(val).toLocaleString();
+  }
 
   const growthEl = document.getElementById('revenueGrowth');
   if (growthEl && data.revenueGrowth !== undefined) {
