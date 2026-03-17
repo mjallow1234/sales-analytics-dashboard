@@ -42,6 +42,9 @@ body {
 
 .tile-small {
   grid-column: span 3;
+  grid-row-end: span 3 !important;
+  padding: 12px 16px !important;
+  min-height: 90px !important;
 }
 
 .tile-small .tile-content {
@@ -59,7 +62,7 @@ body {
 }
 
 .tile-small .tile-content .value {
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 700;
   color: #111827;
   line-height: 1.1;

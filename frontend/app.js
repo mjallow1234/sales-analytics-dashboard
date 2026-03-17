@@ -15,11 +15,32 @@ const colors = [
   "#06b6d4"
 ];
 
-function formatNumber(value) {
-  const num = Number(value) || 0;
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+function formatFinance(value) {
+  if (value === null || value === undefined) return '0';
+  const num = Number(value);
+  if (isNaN(num)) return '0';
+  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + 'B';
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+  if (num >= 1_000) return (num / 1_000).toFixed(1) + 'K';
   return num.toString();
+}
+
+function animateCounter(element, finalValue, duration) {
+  duration = duration || 800;
+  const end = Number(finalValue) || 0;
+  const startTime = performance.now();
+  element.title = end.toLocaleString();
+  function update(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const current = Math.floor(end * progress);
+    element.textContent = formatFinance(current);
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      element.textContent = formatFinance(end);
+    }
+  }
+  requestAnimationFrame(update);
 }
 
 // track which quick filter is active (null = none)
@@ -285,29 +306,13 @@ async function loadDashboard(filters = {}) {
 
 function updateCards(data) {
   const elSales = document.getElementById('total-sales');
-  if (elSales) {
-    elSales.textContent = formatNumber(data.totalSales);
-    elSales.title = Number(data.totalSales).toLocaleString();
-  }
+  if (elSales) animateCounter(elSales, data.totalSales);
   const elRev = document.getElementById('total-revenue');
-  if (elRev) {
-    elRev.textContent = formatNumber(data.totalRevenue);
-    elRev.title = Number(data.totalRevenue).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }
+  if (elRev) animateCounter(elRev, data.totalRevenue);
   const elCust = document.getElementById('total-customers');
-  if (elCust) {
-    elCust.textContent = formatNumber(data.totalCustomers);
-    elCust.title = Number(data.totalCustomers).toLocaleString();
-  }
+  if (elCust) animateCounter(elCust, data.totalCustomers);
   const elRep = document.getElementById('repeatCustomers');
-  if (elRep) {
-    const val = data.repeatCustomers || 0;
-    elRep.textContent = formatNumber(val);
-    elRep.title = Number(val).toLocaleString();
-  }
+  if (elRep) animateCounter(elRep, data.repeatCustomers || 0);
 
   const growthEl = document.getElementById('revenueGrowth');
   if (growthEl && data.revenueGrowth !== undefined) {
@@ -335,10 +340,7 @@ function updateTopCustomers(data) {
     const tdPurch = document.createElement('td');
     tdPurch.textContent = c.purchases;
     const tdSpent = document.createElement('td');
-    tdSpent.textContent = Number(c.totalSpent).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    tdSpent.textContent = formatFinance(c.totalSpent);
     tr.appendChild(tdName);
     tr.appendChild(tdPhone);
     tr.appendChild(tdPurch);
