@@ -632,6 +632,7 @@ function renderCharts(datasets) {
             borderColor: '#22c55e',
             backgroundColor: 'rgba(34,197,94,0.2)',
             fill: true,
+            pointRadius: 3
           }]
         },
         options: {
