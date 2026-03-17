@@ -89,6 +89,12 @@ body {
   grid-row-end: span 8;
 }
 
+.location-chart-scroll {
+  max-height: 450px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
 .tile-large {
   grid-column: span 12;
 }

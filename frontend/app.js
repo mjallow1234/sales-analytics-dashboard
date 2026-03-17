@@ -295,8 +295,11 @@ async function loadDashboard(filters = {}) {
     const productLabels = Object.keys(data.salesByProduct || {});
     const productValues = productLabels.map(p => (data.salesByProduct[p] || {}).revenue || 0);
 
-    const locationLabels = Object.keys(data.revenueByLocation || {});
-    const locationValues = Object.values(data.revenueByLocation || {});
+    const locationEntries = Object.entries(data.revenueByLocation || {});
+    locationEntries.sort((a, b) => b[1] - a[1]);
+    const topLocations = locationEntries.slice(0, 20);
+    const locationLabels = topLocations.map(l => l[0]);
+    const locationValues = topLocations.map(l => l[1]);
 
     const customerLabels = (data.topCustomers || []).map(c => c.name);
     const customerValues = (data.topCustomers || []).map(c => c.totalSpent);
@@ -564,6 +567,7 @@ function renderCharts(datasets) {
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-location"] = locationChart;
+    locationCanvas.style.height = (datasets.revenueByLocation.labels.length * 28) + 'px';
     const tile = document.querySelector('[data-tile="revenue-location"]');
     if (tile) applyStoredSettings(locationChart, tile);
   }
