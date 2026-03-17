@@ -7,7 +7,7 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: #f4f6f8;
+  background: #f6f8fb;
   color: #333;
 }
 
@@ -31,9 +31,9 @@ body {
 
 .dashboard-tile {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   position: relative;
   overflow: hidden;
   user-select: none;
@@ -66,6 +66,19 @@ body {
   font-weight: 700;
   color: #111827;
   line-height: 1.1;
+}
+
+/* KPI accent borders */
+.tile-small:nth-child(1) { border-top: 4px solid #3b82f6; }
+.tile-small:nth-child(2) { border-top: 4px solid #10b981; }
+.tile-small:nth-child(3) { border-top: 4px solid #8b5cf6; }
+.tile-small:nth-child(4) { border-top: 4px solid #f59e0b; }
+
+/* Chart tile titles */
+.dashboard-tile h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .tile-medium {

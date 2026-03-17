@@ -15,6 +15,34 @@ const colors = [
   "#06b6d4"
 ];
 
+const chartPalette = [
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ef4444",
+  "#14b8a6",
+  "#6366f1"
+];
+
+const financeTooltip = {
+  callbacks: {
+    label: function(context) {
+      const label = context.dataset.label || '';
+      const val = formatFinance(context.raw);
+      return label ? label + ': ' + val : val;
+    }
+  }
+};
+
+const financeYTicks = {
+  ticks: {
+    callback: function(value) {
+      return formatFinance(value);
+    }
+  }
+};
+
 function formatFinance(value) {
   if (value === null || value === undefined) return '0';
   const num = Number(value);
@@ -393,10 +421,11 @@ function renderCharts(datasets) {
         labels: datasets.topCustomers.labels,
         datasets: [{
           label: 'Total Spent',
-          data: datasets.topCustomers.values
+          data: datasets.topCustomers.values,
+          backgroundColor: chartPalette
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: financeTooltip }, scales: { y: financeYTicks } }
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-customers"] = topCustomersChart;
@@ -420,12 +449,14 @@ function renderCharts(datasets) {
         datasets: [{
           label: 'Revenue',
           data: datasets.revenueByAgent.values,
-          backgroundColor: colors[0] + '80',
+          backgroundColor: chartPalette,
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        plugins: { tooltip: financeTooltip },
+        scales: { y: financeYTicks },
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;
@@ -462,12 +493,13 @@ function renderCharts(datasets) {
         labels: datasets.salesByProduct.labels,
         datasets: [{
           data: datasets.salesByProduct.values,
-          backgroundColor: datasets.salesByProduct.labels.map((_,i)=> colors[i % colors.length]),
+          backgroundColor: datasets.salesByProduct.labels.map((_,i)=> chartPalette[i % chartPalette.length]),
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        plugins: { tooltip: financeTooltip },
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;
@@ -505,12 +537,14 @@ function renderCharts(datasets) {
         datasets: [{
           label: 'Revenue',
           data: datasets.revenueByLocation.values,
-          backgroundColor: colors[1] + '80'
+          backgroundColor: chartPalette
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        plugins: { tooltip: financeTooltip },
+        scales: { y: financeYTicks },
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;
@@ -549,12 +583,12 @@ function renderCharts(datasets) {
         datasets: [{
           label: 'Sales',
           data: salesCounts,
-          borderColor: colors[0],
+          borderColor: chartPalette[0],
           borderWidth: 2,
           fill: false,
         }],
       },
-      options: { responsive: true, maintainAspectRatio: false },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: financeTooltip }, scales: { y: financeYTicks } },
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-sales-time"] = salesOverTimeChart;
@@ -585,8 +619,8 @@ function renderCharts(datasets) {
             label: 'Revenue',
             data: revenue,
             tension: 0.3,
-            borderColor: colors[0],
-            backgroundColor: colors[0] + '40',
+            borderColor: chartPalette[1],
+            backgroundColor: chartPalette[1] + '40',
             fill: true,
           }]
         },
@@ -594,8 +628,10 @@ function renderCharts(datasets) {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { display: false }
-          }
+            legend: { display: false },
+            tooltip: financeTooltip
+          },
+          scales: { y: financeYTicks }
         }
       });
       if (!window.chartInstances) window.chartInstances = {};
@@ -626,10 +662,10 @@ function renderCharts(datasets) {
             datasets.purchaseDistribution.twoPurchases,
             datasets.purchaseDistribution.threePlusPurchases
           ],
-          backgroundColor: [colors[0], colors[1], colors[3]],
+          backgroundColor: [chartPalette[0], chartPalette[1], chartPalette[3]],
         }],
       },
-      options: { responsive: true, maintainAspectRatio: false },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: financeTooltip } },
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-distribution"] = customerDistributionChart;
