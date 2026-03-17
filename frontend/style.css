@@ -92,14 +92,11 @@ body {
 .location-scroll {
   height: 420px;
   overflow-y: auto;
+  padding-right: 10px;
 }
 
 .location-scroll canvas {
-  min-height: 1200px;
-}
-
-#chart-location {
-  font-size: 11px;
+  min-height: 1000px;
 }
 
 .tile-large {

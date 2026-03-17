@@ -547,6 +547,7 @@ function renderCharts(datasets) {
     const tile = document.querySelector('[data-tile="revenue-location"]');
     if (tile) applyStoredSettings(locationChart, tile);
   } else {
+    locationCanvas.height = datasets.revenueByLocation.labels.length * 28;
     locationChart = new Chart(locationCtx, {
       type: 'bar',
       data: {
@@ -554,7 +555,8 @@ function renderCharts(datasets) {
         datasets: [{
           label: 'Revenue',
           data: datasets.revenueByLocation.values,
-          backgroundColor: chartPalette,
+          backgroundColor: "#3b82f6",
+          borderRadius: 6,
           barPercentage: 0.7,
           categoryPercentage: 0.8
         }]
@@ -564,10 +566,19 @@ function renderCharts(datasets) {
         responsive: true,
         maintainAspectRatio: false,
         animation: { duration: 800, easing: 'easeOutQuart' },
-        plugins: { tooltip: financeTooltip },
+        plugins: {
+          tooltip: financeTooltip,
+          legend: { display: false }
+        },
         scales: {
-          x: financeYTicks,
-          y: { ticks: { autoSkip: false, font: { size: 9 } } }
+          x: {
+            ticks: financeYTicks,
+            grid: { color: "#e5e7eb" }
+          },
+          y: {
+            ticks: { autoSkip: false, font: { size: 10 } },
+            grid: { display: false }
+          }
         },
         onClick: (evt, elements) => {
           if (!elements.length) return;
@@ -584,7 +595,6 @@ function renderCharts(datasets) {
     });
     if (!window.chartInstances) window.chartInstances = {};
     window.chartInstances["chart-location"] = locationChart;
-    locationCanvas.style.height = (datasets.revenueByLocation.labels.length * 35) + 'px';
     const tile = document.querySelector('[data-tile="revenue-location"]');
     if (tile) applyStoredSettings(locationChart, tile);
   }
