@@ -292,6 +292,10 @@ async function loadDashboard(filters = {}) {
     if (params.toString()) url += '?' + params.toString();
 
     console.log('Analytics query:', url);
+    console.log('Start Date:', finalFilters.startDate || '(none)');
+    console.log('End Date:', finalFilters.endDate || '(none)');
+    console.log('Agent:', finalFilters.agent || '(none)');
+    console.log('API URL:', url);
 
     const res = await fetch(url);
     if (!res.ok) throw new Error('Network response not ok');
