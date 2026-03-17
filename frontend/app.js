@@ -321,7 +321,9 @@ async function loadDashboard(filters = {}) {
     const agentLabels = topAgents.map(a => a.agent);
     const agentValues = topAgents.map(a => a.revenue);
 
-    const salesOverTimeRaw = data.salesOverTime || {};\n\n    const datasets = {
+    const salesOverTimeRaw = data.salesOverTime || {};
+
+    const datasets = {
       revenueByAgent: { labels: agentLabels, values: agentValues },
       topCustomers: { labels: customerLabels, values: customerValues },
       salesByProduct: { labels: productLabels, values: productValues },
