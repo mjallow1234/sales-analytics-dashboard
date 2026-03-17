@@ -412,7 +412,6 @@ let revenueChart;
 let salesOverTimeChart;
 let dailyRevenueChart;
 let customerDistributionChart;
-let locationChart;
 let topCustomersChart;
 let productChart;
 
@@ -536,67 +535,22 @@ function renderCharts(datasets) {
     if (tile) applyStoredSettings(productChart, tile);
   }
 
-  // revenue by location - bar
-  const locationCanvas = document.getElementById('chart-location');
-  if (!locationCanvas) return;
-  const locationCtx = locationCanvas.getContext('2d');
-  if (locationChart) {
-    locationChart.data.labels = datasets.revenueByLocation.labels;
-    locationChart.data.datasets[0].data = datasets.revenueByLocation.values;
-    locationChart.update();
-    const tile = document.querySelector('[data-tile="revenue-location"]');
-    if (tile) applyStoredSettings(locationChart, tile);
-  } else {
-    locationCanvas.height = datasets.revenueByLocation.labels.length * 28;
-    locationChart = new Chart(locationCtx, {
-      type: 'bar',
-      data: {
-        labels: datasets.revenueByLocation.labels,
-        datasets: [{
-          label: 'Revenue',
-          data: datasets.revenueByLocation.values,
-          backgroundColor: "#3b82f6",
-          borderRadius: 6,
-          barPercentage: 0.7,
-          categoryPercentage: 0.8
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 800, easing: 'easeOutQuart' },
-        plugins: {
-          tooltip: financeTooltip,
-          legend: { display: false }
-        },
-        scales: {
-          x: {
-            ticks: financeYTicks,
-            grid: { color: "#e5e7eb" }
-          },
-          y: {
-            ticks: { autoSkip: false, font: { size: 10 } },
-            grid: { display: false }
-          }
-        },
-        onClick: (evt, elements) => {
-          if (!elements.length) return;
-          const index = elements[0].index;
-          const location = datasets.revenueByLocation.labels[index];
-          if (chartFilters.location === location) {
-            chartFilters.location = null;
-          } else {
-            chartFilters.location = location;
-          }
-          loadDashboard();
-        }
-      }
+  // Revenue by Location Leaderboard
+  const locationContainer = document.getElementById('locationLeaderboard');
+  const locData = datasets.revenueByLocation;
+  if (locationContainer && locData) {
+    locationContainer.innerHTML = '';
+    locData.labels.forEach((location, index) => {
+      const revenue = locData.values[index];
+      const row = document.createElement('div');
+      row.className = 'location-item';
+      row.innerHTML = `
+        <div class="location-rank">${index + 1}</div>
+        <div class="location-name">${location}</div>
+        <div class="location-revenue">${formatFinance(revenue)}</div>
+      `;
+      locationContainer.appendChild(row);
     });
-    if (!window.chartInstances) window.chartInstances = {};
-    window.chartInstances["chart-location"] = locationChart;
-    const tile = document.querySelector('[data-tile="revenue-location"]');
-    if (tile) applyStoredSettings(locationChart, tile);
   }
 
   // sales over time - line
