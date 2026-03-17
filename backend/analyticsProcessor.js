@@ -20,6 +20,10 @@ function normalizeAgentName(name) {
 
 function processSales(data, filters = {}) {
   const { startDate, endDate, agent: filterAgent } = filters;
+
+  // Debug logging for date filtering
+  console.log('Date filter:', startDate, '→', endDate);
+
   let normalizedAgent;
   if (filterAgent) {
     normalizedAgent = normalizeAgentName(filterAgent);
@@ -45,6 +49,8 @@ function processSales(data, filters = {}) {
   const locationIdx = headers.indexOf('Address');
 
   const rows = data.slice(1); // skip header
+  console.log('Rows before filter:', rows.length);
+
   const revenueByAgent = {};
   const phones = new Set();
 
@@ -205,6 +211,8 @@ function processSales(data, filters = {}) {
       }
     }
   });
+
+  console.log('Rows after filter:', totalSales, '(sales counted)');
 
   // compute customer-level metrics
   let repeatCustomers = 0;

@@ -30,27 +30,27 @@ app.get('/health', (req, res) => {
   });
 });
 
-let analyticsCache = null;
-let cacheTimestamp = 0;
+const analyticsCache = new Map();
 const CACHE_TTL = 300000; // 5 minutes
 
 app.get('/analytics', async (req, res) => {
   console.log('Analytics request received');
   try {
     const { startDate, endDate, agent } = req.query;
+    const cacheKey = JSON.stringify({ startDate, endDate, agent });
 
     // Serve from cache if recent
-    if (analyticsCache && Date.now() - cacheTimestamp < CACHE_TTL) {
-      console.log('Using cached analytics');
-      return res.json(analyticsCache);
+    const cached = analyticsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('Using cached analytics for', cacheKey);
+      return res.json(cached.data);
     }
 
-    console.log('Refreshing analytics cache');
+    console.log('Refreshing analytics for', cacheKey);
     const rows = await getSalesData();
     const analytics = processSales(rows, { startDate, endDate, agent });
 
-    analyticsCache = analytics;
-    cacheTimestamp = Date.now();
+    analyticsCache.set(cacheKey, { data: analytics, timestamp: Date.now() });
 
     res.json(analytics);
   } catch (error) {
