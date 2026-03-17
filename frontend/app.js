@@ -539,18 +539,45 @@ function renderCharts(datasets) {
   const locationContainer = document.getElementById('locationLeaderboard');
   const locData = datasets.revenueByLocation;
   if (locationContainer && locData) {
+    const totalRevenue = locData.values.reduce((sum, v) => sum + v, 0);
     locationContainer.innerHTML = '';
+    let cumulative = 0;
     locData.labels.forEach((location, index) => {
       const revenue = locData.values[index];
+      const share = (revenue / totalRevenue) * 100;
+      cumulative += share;
+      let medal = '';
+      if (index === 0) medal = '\u{1F947}';
+      else if (index === 1) medal = '\u{1F948}';
+      else if (index === 2) medal = '\u{1F949}';
       const row = document.createElement('div');
       row.className = 'location-item';
       row.innerHTML = `
-        <div class="location-rank">${index + 1}</div>
+        <div class="location-rank">${medal || index + 1}</div>
         <div class="location-name">${location}</div>
+        <div class="location-share">${share.toFixed(1)}%</div>
         <div class="location-revenue">${formatFinance(revenue)}</div>
       `;
       locationContainer.appendChild(row);
     });
+  }
+
+  // Contribution insight (Pareto analysis)
+  const insightContainer = document.getElementById('locationInsight');
+  if (insightContainer && locData) {
+    const total = locData.values.reduce((s, v) => s + v, 0);
+    let cumulative = 0;
+    let topCount = 0;
+    for (let i = 0; i < locData.values.length; i++) {
+      cumulative += locData.values[i];
+      topCount++;
+      if (cumulative / total >= 0.8) break;
+    }
+    insightContainer.innerHTML = `
+      Top <strong>${topCount}</strong> locations generate
+      <strong>${((cumulative / total) * 100).toFixed(0)}%</strong>
+      of total revenue.
+    `;
   }
 
   // sales over time - line
