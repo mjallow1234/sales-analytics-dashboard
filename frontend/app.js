@@ -100,7 +100,7 @@ function deletePreset(name) {
 // persistent chart settings loaded from active preset
 let chartSettingsStore = (function() {
   const preset = loadPreset(activePresetName);
-  return preset ? preset.settings : {};
+  return (preset && preset.settings) ? preset.settings : {};
 })();
 
 // helper that updates the text summary bar based on filters
@@ -153,13 +153,19 @@ function applyStoredSettings(chart, tile) {
         chart.options.scales.y.grid.display = settings.grid;
     }
   }
-  if (chart.data && chart.data.datasets) {
+  if (settings.color && typeof settings.color === 'string' && chart.data && chart.data.datasets) {
     chart.data.datasets.forEach(ds => {
-      ds.backgroundColor = settings.color;
-      ds.borderColor = settings.color;
+      if (!Array.isArray(ds.backgroundColor)) {
+        ds.backgroundColor = settings.color;
+      }
+      if (!Array.isArray(ds.borderColor)) {
+        ds.borderColor = settings.color;
+      }
     });
   }
-  chart.config.type = settings.type || chart.config.type;
+  if (settings.type) {
+    chart.config.type = settings.type;
+  }
   chart.update();
 }
 
