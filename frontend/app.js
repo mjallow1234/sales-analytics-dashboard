@@ -541,10 +541,14 @@ function renderCharts(datasets) {
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         plugins: { tooltip: financeTooltip },
-        scales: { y: financeYTicks },
+        scales: {
+          x: financeYTicks,
+          y: { ticks: { autoSkip: false } }
+        },
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;

@@ -85,6 +85,10 @@ body {
   grid-column: span 6;
 }
 
+[data-tile="revenue-location"] {
+  grid-row-end: span 8;
+}
+
 .tile-large {
   grid-column: span 12;
 }
