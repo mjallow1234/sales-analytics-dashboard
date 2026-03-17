@@ -70,13 +70,8 @@ function applyStoredSettings(chart, tile) {
     const titleEl = tile.querySelector('h3');
     if (titleEl) titleEl.innerText = settings.title;
   }
-  if (settings.height) {
-    const content = tile.querySelector('.tile-content');
-    if (content) {
-      content.style.height = settings.height;
-    } else {
-      tile.style.height = settings.height;
-    }
+  if (settings.span) {
+    tile.style.gridRowEnd = 'span ' + settings.span;
   }
   if (chart.options) {
     if (chart.options.plugins && chart.options.plugins.legend)
@@ -781,7 +776,9 @@ window.addEventListener('DOMContentLoaded', () => {
     draggedTile = null;
   });
 
-  // resize tiles via mouse drag handle (edit mode only)
+  // resize tiles via grid-row span (edit mode only)
+  const ROW_HEIGHT = 60;
+
   document.addEventListener('mousedown', function (e) {
     if (!editMode) return;
 
@@ -793,23 +790,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
     e.preventDefault();
 
-    const content = tile.querySelector('.tile-content');
-    if (!content) return;
-
     const startY = e.clientY;
-    const startHeight = content.getBoundingClientRect().height;
+    const startHeight = tile.getBoundingClientRect().height;
 
     function onMouseMove(ev) {
       const delta = ev.clientY - startY;
+      const newSpan = Math.round((startHeight + delta) / ROW_HEIGHT);
 
-      let newHeight = startHeight + delta;
+      const minSpan = 4;
+      const maxSpan = 16;
+      const span = Math.max(minSpan, Math.min(maxSpan, newSpan));
 
-      const minHeight = 220;
-      const maxHeight = 900;
-
-      newHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-
-      content.style.height = newHeight + 'px';
+      tile.style.gridRowEnd = 'span ' + span;
     }
 
     function onMouseUp() {
@@ -824,6 +816,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (chart) chart.resize();
       }
+
+      // persist span in chart settings store
+      const key = tile.dataset.tile;
+      const computed = getComputedStyle(tile);
+      const spanMatch = computed.gridRowEnd.match(/span\s+(\d+)/);
+      const spanVal = spanMatch ? parseInt(spanMatch[1], 10) : 6;
+      if (!chartSettingsStore[key]) chartSettingsStore[key] = {};
+      chartSettingsStore[key].span = spanVal;
+      localStorage.setItem('chartSettings', JSON.stringify(chartSettingsStore));
 
       saveDashboardLayout();
     }

@@ -25,7 +25,8 @@ body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
+  grid-auto-rows: 60px;
+  gap: 16px;
 }
 
 .dashboard-tile {
@@ -36,6 +37,7 @@ body {
   position: relative;
   overflow: hidden;
   user-select: none;
+  grid-row-end: span 6;
 }
 
 .tile-small {
@@ -51,8 +53,8 @@ body {
 }
 
 .tile-content {
-  height: auto;
-  min-height: 200px;
+  height: 100%;
+  min-height: 0;
 }
 
 .tile-content canvas {
