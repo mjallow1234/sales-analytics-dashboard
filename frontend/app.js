@@ -554,7 +554,9 @@ function renderCharts(datasets) {
         datasets: [{
           label: 'Revenue',
           data: datasets.revenueByLocation.values,
-          backgroundColor: chartPalette
+          backgroundColor: chartPalette,
+          barPercentage: 0.7,
+          categoryPercentage: 0.8
         }]
       },
       options: {
@@ -565,7 +567,7 @@ function renderCharts(datasets) {
         plugins: { tooltip: financeTooltip },
         scales: {
           x: financeYTicks,
-          y: { ticks: { autoSkip: false } }
+          y: { ticks: { autoSkip: false, font: { size: 10 } } }
         },
         onClick: (evt, elements) => {
           if (!elements.length) return;
