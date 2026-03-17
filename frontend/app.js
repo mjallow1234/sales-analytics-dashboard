@@ -31,9 +31,58 @@ let draggedTile = null;
 let activeChart = null;
 let activeTile = null;
 
-// persistent chart settings loaded from localStorage
-let chartSettingsStore =
-  JSON.parse(localStorage.getItem("chartSettings") || "{}");
+// --- Preset storage system ---
+let activePresetName = 'default';
+
+function loadPresets() {
+  return JSON.parse(localStorage.getItem('dashboardPresets') || '{}');
+}
+
+function savePreset(name, layout, settings) {
+  const presets = loadPresets();
+  presets[name] = { layout: layout, settings: settings };
+  localStorage.setItem('dashboardPresets', JSON.stringify(presets));
+}
+
+function loadPreset(name) {
+  const presets = loadPresets();
+  if (!presets[name]) return null;
+  return presets[name];
+}
+
+function saveActivePreset() {
+  const order = [...document.querySelectorAll('.dashboard-tile')]
+    .map(tile => tile.dataset.tile);
+  savePreset(activePresetName, order, chartSettingsStore);
+}
+
+function getPresetNames() {
+  return Object.keys(loadPresets());
+}
+
+function deletePreset(name) {
+  if (name === 'default') return;
+  const presets = loadPresets();
+  delete presets[name];
+  localStorage.setItem('dashboardPresets', JSON.stringify(presets));
+}
+
+// migrate legacy single-layout keys into preset system on first run
+(function migrateToPresets() {
+  const presets = loadPresets();
+  if (Object.keys(presets).length) return;
+  const legacyLayout = JSON.parse(localStorage.getItem('dashboardLayout') || '[]');
+  const legacySettings = JSON.parse(localStorage.getItem('chartSettings') || '{}');
+  savePreset('default', legacyLayout, legacySettings);
+  localStorage.removeItem('dashboardLayout');
+  localStorage.removeItem('chartSettings');
+})();
+
+// persistent chart settings loaded from active preset
+let chartSettingsStore = (function() {
+  const preset = loadPreset(activePresetName);
+  return preset ? preset.settings : {};
+})();
 
 // helper that updates the text summary bar based on filters
 function updateFilterSummary(filters) {
@@ -95,11 +144,9 @@ function applyStoredSettings(chart, tile) {
   chart.update();
 }
 
-// save current tile order to localStorage
+// save current tile order into the active preset
 function saveDashboardLayout() {
-  const order = [...document.querySelectorAll('.dashboard-tile')]
-    .map(tile => tile.dataset.tile);
-  localStorage.setItem('dashboardLayout', JSON.stringify(order));
+  saveActivePreset();
 }
 
 // helper responsible for making titles editable on double click
@@ -544,10 +591,10 @@ window.addEventListener('DOMContentLoaded', () => {
     console.warn('Dashboard container missing');
     return;
   }
-  // restore layout order if previously saved
-  const savedLayout = JSON.parse(localStorage.getItem('dashboardLayout') || '[]');
-  if (savedLayout.length) {
-    savedLayout.forEach(name => {
+  // restore layout order from active preset
+  const activePreset = loadPreset(activePresetName);
+  if (activePreset && activePreset.layout && activePreset.layout.length) {
+    activePreset.layout.forEach(name => {
       const tile = dashboard.querySelector(`[data-tile="${name}"]`);
       if (tile) dashboard.appendChild(tile);
     });
@@ -824,7 +871,6 @@ window.addEventListener('DOMContentLoaded', () => {
       const spanVal = spanMatch ? parseInt(spanMatch[1], 10) : 6;
       if (!chartSettingsStore[key]) chartSettingsStore[key] = {};
       chartSettingsStore[key].span = spanVal;
-      localStorage.setItem('chartSettings', JSON.stringify(chartSettingsStore));
 
       saveDashboardLayout();
     }
@@ -921,10 +967,7 @@ window.addEventListener('DOMContentLoaded', () => {
       axisLabels: document.getElementById('showAxisLabelsToggle').checked,
       height: heightVal
     };
-    localStorage.setItem(
-      "chartSettings",
-      JSON.stringify(chartSettingsStore)
-    );
+    saveActivePreset();
   });
   // quick filter buttons logic
   function clearActiveQuick() {
