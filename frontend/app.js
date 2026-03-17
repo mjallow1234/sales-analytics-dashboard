@@ -100,7 +100,9 @@ function deletePreset(name) {
 // persistent chart settings loaded from active preset
 let chartSettingsStore = (function() {
   const preset = loadPreset(activePresetName);
-  return (preset && preset.settings) ? preset.settings : {};
+  return (preset && typeof preset.settings === 'object' && !Array.isArray(preset.settings))
+    ? preset.settings
+    : {};
 })();
 
 // helper that updates the text summary bar based on filters
@@ -127,14 +129,18 @@ function updateFilterSummary(filters) {
   }
 }
 
+function isValidColor(value) {
+  return typeof value === 'string' && value.length > 0;
+}
+
 // apply previously saved settings to a chart if available
 function applyStoredSettings(chart, tile) {
   if (!chart || !tile) return;
   const key = tile.dataset.tile;
   const settings = chartSettingsStore[key];
-  if (!settings) return;
+  if (!settings || typeof settings !== 'object') return;
   // apply title and tile height
-  if (settings.title) {
+  if (typeof settings.title === 'string' && settings.title) {
     const titleEl = tile.querySelector('h3');
     if (titleEl) titleEl.innerText = settings.title;
   }
@@ -143,27 +149,28 @@ function applyStoredSettings(chart, tile) {
   }
   if (chart.options) {
     if (chart.options.plugins && chart.options.plugins.legend)
-      chart.options.plugins.legend.display = settings.legend;
+      chart.options.plugins.legend.display = !!settings.legend;
     if (chart.options.scales) {
       if (chart.options.scales.x)
-        chart.options.scales.x.display = settings.axisLabels;
-      if (chart.options.scales.y)
+        chart.options.scales.x.display = !!settings.axisLabels;
+      if (chart.options.scales.y) {
         chart.options.scales.y.grid = chart.options.scales.y.grid || {};
-      if (chart.options.scales.y)
-        chart.options.scales.y.grid.display = settings.grid;
+        chart.options.scales.y.grid.display = !!settings.grid;
+      }
     }
   }
-  if (settings.color && typeof settings.color === 'string' && chart.data && chart.data.datasets) {
-    chart.data.datasets.forEach(ds => {
+  if (isValidColor(settings.color) && chart.data && chart.data.datasets) {
+    const ds = chart.data.datasets[0];
+    if (ds) {
       if (!Array.isArray(ds.backgroundColor)) {
         ds.backgroundColor = settings.color;
       }
       if (!Array.isArray(ds.borderColor)) {
         ds.borderColor = settings.color;
       }
-    });
+    }
   }
-  if (settings.type) {
+  if (typeof settings.type === 'string' && settings.type) {
     chart.config.type = settings.type;
   }
   chart.update();
