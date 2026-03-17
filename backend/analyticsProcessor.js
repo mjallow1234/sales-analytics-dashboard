@@ -77,6 +77,8 @@ function processSales(data, filters = {}) {
   const customerStats = {};
   // track daily sales
   const salesOverTime = {};
+  // track daily revenue
+  const revenueOverTime = {};
   // track sales by product
   const salesByProduct = {};
   // track revenue by location
@@ -196,6 +198,9 @@ function processSales(data, filters = {}) {
             salesOverTime[date] = 0;
           }
           salesOverTime[date]++;
+          if (amount > 0 && amount <= 100000) {
+            revenueOverTime[date] = (revenueOverTime[date] || 0) + amount;
+          };
         }
       }
     }
@@ -258,6 +263,7 @@ function processSales(data, filters = {}) {
     topCustomers,
     purchaseDistribution,
     salesOverTime,
+    revenueOverTime,
     salesByProduct,
     revenueByLocation,
     revenueGrowth,

@@ -321,18 +321,12 @@ async function loadDashboard(filters = {}) {
     const agentLabels = topAgents.map(a => a.agent);
     const agentValues = topAgents.map(a => a.revenue);
 
-    // Preserve existing salesOverTime shape for the current chart, and also provide an array for the new trend chart
-    const salesOverTimeRaw = data.salesOverTime || {};
-    const salesOverTimeArray = Array.isArray(salesOverTimeRaw)
-      ? salesOverTimeRaw
-      : Object.entries(salesOverTimeRaw).map(([date, revenue]) => ({ date, revenue }));
-
-    const datasets = {
+    const salesOverTimeRaw = data.salesOverTime || {};\n\n    const datasets = {
       revenueByAgent: { labels: agentLabels, values: agentValues },
       topCustomers: { labels: customerLabels, values: customerValues },
       salesByProduct: { labels: productLabels, values: productValues },
       salesOverTime: salesOverTimeRaw,
-      salesOverTimeArray,
+      revenueOverTime: data.revenueOverTime || {},
       purchaseDistribution: data.purchaseDistribution || { onePurchase:0, twoPurchases:0, threePlusPurchases:0 },
       revenueByLocation: { labels: locationLabels, values: locationValues }
     };    try {
@@ -615,9 +609,9 @@ function renderCharts(datasets) {
   // daily revenue trend - line
   const dailyCanvas = document.getElementById('dailyRevenueChart');
   if (dailyCanvas) {
-    const trendData = datasets.salesOverTimeArray || [];
-    const dates = trendData.map(d => d.date);
-    const revenue = trendData.map(d => d.revenue);
+    const revOverTime = datasets.revenueOverTime || {};
+    const dates = Object.keys(revOverTime);
+    const revenue = Object.values(revOverTime);
     const dailyCtx = dailyCanvas.getContext('2d');
 
     if (dailyRevenueChart) {
@@ -634,9 +628,9 @@ function renderCharts(datasets) {
           datasets: [{
             label: 'Revenue',
             data: revenue,
-            tension: 0.3,
-            borderColor: chartPalette[1],
-            backgroundColor: chartPalette[1] + '40',
+            tension: 0.35,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34,197,94,0.2)',
             fill: true,
           }]
         },
