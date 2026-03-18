@@ -353,8 +353,8 @@ function generateInsights(data) {
   const totalSales = data.totalSales;
 
   if (totalSales > 0) {
-    const avgOrderValue = totalRevenue / totalSales;
-    insights.push(`Average order value is ${formatFinance(avgOrderValue)}`);
+    const avgOrderValue = (totalRevenue / totalSales).toFixed(2);
+    insights.push(`Average order value is ${Number(avgOrderValue).toLocaleString()} GMD`);
   }
 
   const topAgent = Object.entries(data.revenueByAgent || {})
