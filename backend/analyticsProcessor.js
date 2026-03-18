@@ -142,7 +142,8 @@ function processSales(data, filters = {}) {
       revenueByLocation[location] += amount;
     }
 
-    totalSales += 1;
+    const quantity = quantityIdx >= 0 ? (parseInt(row[quantityIdx], 10) || 1) : 1;
+    totalSales += quantity;
 
     // validate amount before counting it as revenue
     const validAmount = amount > 0 && amount <= 100000;
@@ -194,10 +195,7 @@ function processSales(data, filters = {}) {
         const parsedDate = new Date(dateRaw);
         if (!isNaN(parsedDate.getTime())) {
           const date = parsedDate.toISOString().split('T')[0];
-          if (!salesOverTime[date]) {
-            salesOverTime[date] = 0;
-          }
-          salesOverTime[date]++;
+          salesOverTime[date] = (salesOverTime[date] || 0) + quantity;
           if (amount > 0 && amount <= 100000) {
             revenueOverTime[date] = (revenueOverTime[date] || 0) + amount;
           };
