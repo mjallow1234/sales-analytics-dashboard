@@ -71,27 +71,30 @@ app.post('/ai-query', async (req, res) => {
   }
 
   try {
-    const { OpenAI } = require('openai');
-    const openai = new OpenAI();
-
     const prompt = `You are a sales analytics assistant.
 Analyze the following data and answer the question concisely.
 
 Data:
-${context}
+${typeof context === 'string' ? context : JSON.stringify(context, null, 2)}
 
 Question:
 ${question}`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }]
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3',
+        prompt: prompt,
+        stream: false
+      })
     });
 
-    res.json({ answer: completion.choices[0].message.content });
+    const data = await response.json();
+    res.json({ answer: data.response });
   } catch (error) {
     console.error('AI query error:', error);
-    res.status(500).json({ answer: 'AI service unavailable. Please check your OpenAI API key.' });
+    res.status(500).json({ answer: 'Local AI service unavailable. Ensure Ollama is running.' });
   }
 });
 
