@@ -62,6 +62,39 @@ app.get('/analytics', async (req, res) => {
   }
 });
 
+app.use(express.json());
+
+app.post('/ai-query', async (req, res) => {
+  const { question, context } = req.body;
+  if (!question) {
+    return res.status(400).json({ error: 'Question is required' });
+  }
+
+  try {
+    const { OpenAI } = require('openai');
+    const openai = new OpenAI();
+
+    const prompt = `You are a sales analytics assistant.
+Analyze the following data and answer the question concisely.
+
+Data:
+${context}
+
+Question:
+${question}`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    res.json({ answer: completion.choices[0].message.content });
+  } catch (error) {
+    console.error('AI query error:', error);
+    res.status(500).json({ answer: 'AI service unavailable. Please check your OpenAI API key.' });
+  }
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Analytics server running on port ${PORT}`);

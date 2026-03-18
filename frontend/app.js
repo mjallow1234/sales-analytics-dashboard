@@ -300,6 +300,7 @@ async function loadDashboard(filters = {}) {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Network response not ok');
     const data = await res.json();
+    _lastAnalyticsData = data;
 
     updateCards(data);
     // table removed, no need to updateTopCustomers
@@ -336,12 +337,104 @@ async function loadDashboard(filters = {}) {
     } catch(err) {
       console.error("Chart rendering failed:", err);
     }
+
+    renderInsights(data);
   } catch (err) {
     console.error('Failed to load analytics:', err);
   } finally {
     hideLoadingState();
   }
 }
+
+// AI Insights
+function generateInsights(data) {
+  const insights = [];
+  const totalRevenue = data.totalRevenue;
+  const totalSales = data.totalSales;
+
+  if (totalSales > 0) {
+    const avgOrderValue = totalRevenue / totalSales;
+    insights.push(`Average order value is ${formatFinance(avgOrderValue)}`);
+  }
+
+  const topAgent = Object.entries(data.revenueByAgent || {})
+    .sort((a, b) => b[1] - a[1])[0];
+  if (topAgent) {
+    insights.push(`Top agent is ${topAgent[0]} with ${formatFinance(topAgent[1])}`);
+  }
+
+  const topLocation = Object.entries(data.revenueByLocation || {})
+    .sort((a, b) => b[1] - a[1])[0];
+  if (topLocation) {
+    insights.push(`Top location is ${topLocation[0]} generating ${formatFinance(topLocation[1])}`);
+  }
+
+  return insights;
+}
+
+function renderInsights(data) {
+  const container = document.getElementById('aiInsights');
+  if (!container) return;
+  const insights = generateInsights(data);
+  container.innerHTML = insights.map(i => `<div>\u2022 ${i}</div>`).join('');
+}
+
+// AI Chat
+let _lastAnalyticsData = null;
+
+async function askAI(question, data) {
+  const context = JSON.stringify({
+    totalSales: data.totalSales,
+    totalRevenue: data.totalRevenue,
+    totalCustomers: data.totalCustomers,
+    repeatCustomers: data.repeatCustomers,
+    revenueByAgent: data.revenueByAgent,
+    revenueByLocation: data.revenueByLocation,
+    salesByProduct: data.salesByProduct,
+    revenueGrowth: data.revenueGrowth
+  });
+
+  const response = await fetch('/ai-query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, context })
+  });
+
+  return response.json();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sendBtn = document.getElementById('aiSend');
+  const input = document.getElementById('aiInput');
+  const messages = document.getElementById('aiMessages');
+
+  if (sendBtn && input && messages) {
+    async function handleSend() {
+      const question = input.value.trim();
+      if (!question || !_lastAnalyticsData) return;
+      input.value = '';
+
+      messages.innerHTML += `<div class="user-msg">${question}</div>`;
+      messages.innerHTML += `<div class="ai-msg">Thinking...</div>`;
+      messages.scrollTop = messages.scrollHeight;
+
+      try {
+        const result = await askAI(question, _lastAnalyticsData);
+        const lastMsg = messages.querySelector('.ai-msg:last-child');
+        if (lastMsg) lastMsg.textContent = result.answer || 'No response';
+      } catch (e) {
+        const lastMsg = messages.querySelector('.ai-msg:last-child');
+        if (lastMsg) lastMsg.textContent = 'Failed to get response';
+      }
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', handleSend);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSend();
+    });
+  }
+});
 
 function updateCards(data) {
   const elSales = document.getElementById('total-sales');
