@@ -251,10 +251,85 @@ function processSales(data, filters = {}) {
     .map(([agent, revenue]) => ({ agent, revenue }))
     .sort((a, b) => b.revenue - a.revenue);
 
+  // --- Anomaly detection, trends, recommendations ---
+  const now = new Date();
+  const last7Start = new Date(now);
+  last7Start.setDate(now.getDate() - 7);
+  const prev7Start = new Date(now);
+  prev7Start.setDate(now.getDate() - 14);
+
+  let last7DaysRevenue = 0;
+  let previous7DaysRevenue = 0;
+  let last7DaysSales = 0;
+  let previous7DaysSales = 0;
+
+  Object.entries(revenueOverTime).forEach(([date, value]) => {
+    const d = new Date(date);
+    if (d >= last7Start) last7DaysRevenue += value;
+    else if (d >= prev7Start) previous7DaysRevenue += value;
+  });
+
+  Object.entries(salesOverTime).forEach(([date, count]) => {
+    const d = new Date(date);
+    if (d >= last7Start) last7DaysSales += count;
+    else if (d >= prev7Start) previous7DaysSales += count;
+  });
+
+  const totalCustomers = phones.size;
+  const topAgentEntry = agentLeaderboard[0];
+  const topAgentName = topAgentEntry ? topAgentEntry.agent : 'N/A';
+  const topAgentRevenue = topAgentEntry ? topAgentEntry.revenue : 0;
+
+  const locEntries = Object.entries(revenueByLocation).sort((a, b) => b[1] - a[1]);
+  const topLocationName = locEntries[0] ? locEntries[0][0] : 'N/A';
+  const topLocationRevenue = locEntries[0] ? locEntries[0][1] : 0;
+
+  // Anomalies
+  const anomalies = [];
+  if (previous7DaysRevenue > 0 && last7DaysRevenue < previous7DaysRevenue * 0.8) {
+    anomalies.push('\u26a0 Revenue dropped more than 20% compared to last week');
+  }
+  if (previous7DaysSales > 0 && last7DaysSales > previous7DaysSales * 1.3) {
+    anomalies.push('\ud83d\ude80 Sales increased sharply this week');
+  }
+  if (totalRevenue > 0 && topAgentRevenue / totalRevenue > 0.5) {
+    anomalies.push(`\ud83d\udd25 ${topAgentName} is generating over 50% of total revenue`);
+  }
+
+  // Trends
+  const trends = [];
+  if (previous7DaysRevenue > 0) {
+    const growthRate = ((last7DaysRevenue - previous7DaysRevenue) / previous7DaysRevenue) * 100;
+    if (growthRate > 10) {
+      trends.push(`\ud83d\udcc8 Revenue is growing at ${growthRate.toFixed(1)}%`);
+    } else if (growthRate < -10) {
+      trends.push(`\ud83d\udcc9 Revenue is declining at ${Math.abs(growthRate).toFixed(1)}%`);
+    }
+  }
+  if (totalCustomers > 0) {
+    if (repeatCustomers / totalCustomers > 0.3) {
+      trends.push('\ud83d\udc8e High repeat customer rate \u2014 strong retention');
+    } else {
+      trends.push('\u26a0 Low repeat customers \u2014 retention needs improvement');
+    }
+  }
+
+  // Recommendations
+  const recommendations = [];
+  if (previous7DaysRevenue > 0 && last7DaysRevenue < previous7DaysRevenue) {
+    recommendations.push('\ud83d\udc49 Increase promotions or agent incentives to boost short-term sales');
+  }
+  if (totalRevenue > 0 && topAgentRevenue / totalRevenue > 0.5) {
+    recommendations.push('\ud83d\udc49 Distribute leads more evenly across agents to reduce dependency risk');
+  }
+  if (totalCustomers > 0 && repeatCustomers / totalCustomers < 0.2) {
+    recommendations.push('\ud83d\udc49 Introduce loyalty offers to improve repeat purchases');
+  }
+
   return {
     totalSales,
     totalRevenue,
-    totalCustomers: phones.size,
+    totalCustomers,
     revenueByAgent,
     agentLeaderboard,
     repeatCustomers,
@@ -265,6 +340,9 @@ function processSales(data, filters = {}) {
     salesByProduct,
     revenueByLocation,
     revenueGrowth,
+    anomalies,
+    trends,
+    recommendations,
   };
 }
 

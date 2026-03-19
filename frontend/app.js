@@ -421,20 +421,59 @@ function generateSmartInsights(data) {
 }
 
 function renderInsights(data) {
-  const container = document.getElementById('aiInsights');
-  if (!container) return;
-  const insights = generateInsights(data);
-  container.innerHTML = insights.map(i => `<div>\u2022 ${i}</div>`).join('');
+  // Backend-computed anomalies
+  const anomalyEl = document.getElementById('anomalyAlerts');
+  if (anomalyEl) {
+    const anomalies = data.anomalies || [];
+    if (anomalies.length > 0) {
+      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => `<div class="anomaly-item">${a}</div>`).join('');
+      anomalyEl.style.display = 'block';
+    } else {
+      anomalyEl.style.display = 'none';
+    }
+  }
 
-  // Smart insights
+  // Backend-computed trends
+  const trendEl = document.getElementById('trendInsights');
+  if (trendEl) {
+    const trends = data.trends || [];
+    if (trends.length > 0) {
+      trendEl.innerHTML = '<div class="section-label">Trends</div>' + trends.map(t => `<div class="trend-item">${t}</div>`).join('');
+      trendEl.style.display = 'block';
+    } else {
+      trendEl.style.display = 'none';
+    }
+  }
+
+  // Backend-computed recommendations
+  const recEl = document.getElementById('recommendationInsights');
+  if (recEl) {
+    const recs = data.recommendations || [];
+    if (recs.length > 0) {
+      recEl.innerHTML = '<div class="section-label">Recommendations</div>' + recs.map(r => `<div class="rec-item">${r}</div>`).join('');
+      recEl.style.display = 'block';
+    } else {
+      recEl.style.display = 'none';
+    }
+  }
+
+  // Smart insights (client-computed)
   const smartContainer = document.getElementById('smartInsights');
-  if (!smartContainer) return;
-  const smart = generateSmartInsights(data);
-  if (smart.length > 0) {
-    smartContainer.innerHTML = smart.map(i => `<div class="smart-insight-item">${i}</div>`).join('');
-    smartContainer.style.display = 'block';
-  } else {
-    smartContainer.style.display = 'none';
+  if (smartContainer) {
+    const smart = generateSmartInsights(data);
+    if (smart.length > 0) {
+      smartContainer.innerHTML = smart.map(i => `<div class="smart-insight-item">${i}</div>`).join('');
+      smartContainer.style.display = 'block';
+    } else {
+      smartContainer.style.display = 'none';
+    }
+  }
+
+  // General insights
+  const container = document.getElementById('aiInsights');
+  if (container) {
+    const insights = generateInsights(data);
+    container.innerHTML = insights.map(i => `<div>\u2022 ${i}</div>`).join('');
   }
 }
 

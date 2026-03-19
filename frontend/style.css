@@ -581,6 +581,60 @@ display:none;
   margin-bottom: 12px;
 }
 
+.anomaly-alerts {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  display: none;
+}
+
+.anomaly-item {
+  padding: 3px 0;
+}
+
+.trend-insights {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  display: none;
+}
+
+.trend-item {
+  padding: 3px 0;
+}
+
+.recommendation-insights {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  display: none;
+}
+
+.rec-item {
+  padding: 3px 0;
+}
+
+.section-label {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
 .smart-insights {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
