@@ -434,6 +434,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') handleSend();
     });
   }
+
+  const toggleBtn = document.getElementById('toggle-ai');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const sidebar = document.getElementById('aiSidebar');
+      const main = document.querySelector('main');
+      sidebar.classList.toggle('closed');
+      sidebar.classList.toggle('open');
+      main.classList.toggle('expanded');
+    });
+  }
 });
 
 function updateCards(data) {
