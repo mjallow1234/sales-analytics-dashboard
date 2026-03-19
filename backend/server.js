@@ -71,11 +71,42 @@ app.post('/ai-query', async (req, res) => {
   }
 
   try {
-    const prompt = `You are a sales analytics assistant.
-Analyze the following data and answer the question concisely.
+    const ctx = typeof context === 'string' ? JSON.parse(context) : (context || {});
+
+    const topAgents = Object.entries(ctx.revenueByAgent || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, rev]) => `  ${name}: ${rev}`)
+      .join('\n');
+
+    const topLocations = Object.entries(ctx.revenueByLocation || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, rev]) => `  ${name}: ${rev}`)
+      .join('\n');
+
+    const salesDates = Object.keys(ctx.salesOverTime || {}).sort().slice(-3);
+    const recentSales = salesDates
+      .map(d => `  ${d}: ${ctx.salesOverTime[d]} units`)
+      .join('\n') || '  No recent data';
+
+    const summary = `Total Sales: ${ctx.totalSales || 0}
+Total Revenue: ${ctx.totalRevenue || 0}
+Repeat Customers: ${ctx.repeatCustomers || 0}
+
+Top 3 Agents:
+${topAgents || '  None'}
+
+Top 3 Locations:
+${topLocations || '  None'}
+
+Recent Sales (last 3 days):
+${recentSales}`;
+
+    const prompt = `You are a sales analytics assistant. Answer concisely in 2-3 sentences.
 
 Data:
-${typeof context === 'string' ? context : JSON.stringify(context, null, 2)}
+${summary}
 
 Question:
 ${question}`;
