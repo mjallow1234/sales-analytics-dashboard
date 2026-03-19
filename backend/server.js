@@ -73,65 +73,72 @@ app.post('/ai-query', async (req, res) => {
   try {
     const ctx = typeof context === 'string' ? JSON.parse(context) : (context || {});
 
-    // Precompute top agent
-    const agentEntries = Object.entries(ctx.revenueByAgent || {}).sort((a, b) => b[1] - a[1]);
-    const topAgent = agentEntries.length ? `${agentEntries[0][0]} (${agentEntries[0][1]})` : 'N/A';
-    const topAgents = agentEntries.slice(0, 3)
-      .map(([name, rev]) => `  ${name}: ${rev}`)
-      .join('\n') || '  None';
+    // Time-based calculations (last 7 days)
+    const now = new Date();
+    const last7Days = new Date();
+    last7Days.setDate(now.getDate() - 7);
 
-    // Precompute top location
-    const locEntries = Object.entries(ctx.revenueByLocation || {}).sort((a, b) => b[1] - a[1]);
-    const topLocation = locEntries.length ? `${locEntries[0][0]} (${locEntries[0][1]})` : 'N/A';
-    const topLocations = locEntries.slice(0, 3)
-      .map(([name, rev]) => `  ${name}: ${rev}`)
-      .join('\n') || '  None';
+    let last7DaysSales = 0;
+    let last7DaysRevenue = 0;
 
-    // Precompute last 3 days sales and revenue
-    const salesDates = Object.keys(ctx.salesOverTime || {}).sort().slice(-3);
-    const last3DaysSales = salesDates.reduce((sum, d) => sum + (ctx.salesOverTime[d] || 0), 0);
-    const revDates = Object.keys(ctx.revenueOverTime || {}).sort().slice(-3);
-    const last3DaysRevenue = revDates.reduce((sum, d) => sum + (ctx.revenueOverTime[d] || 0), 0);
-    const recentBreakdown = salesDates
-      .map(d => `  ${d}: ${ctx.salesOverTime[d]} units`)
-      .join('\n') || '  No recent data';
+    Object.entries(ctx.salesOverTime || {}).forEach(([date, count]) => {
+      const d = new Date(date);
+      if (d >= last7Days) {
+        last7DaysSales += count;
+      }
+    });
 
-    const summary = `Total Sales: ${ctx.totalSales || 0}
-Total Revenue: ${ctx.totalRevenue || 0}
-Repeat Customers: ${ctx.repeatCustomers || 0}
+    Object.entries(ctx.revenueOverTime || {}).forEach(([date, revenue]) => {
+      const d = new Date(date);
+      if (d >= last7Days) {
+        last7DaysRevenue += revenue;
+      }
+    });
 
-Top Agent: ${topAgent}
-Top Location: ${topLocation}
+    // Extract top agent and location
+    const topAgent = Object.entries(ctx.revenueByAgent || {})
+      .sort((a, b) => b[1] - a[1])[0];
 
-Top 3 Agents:
-${topAgents}
+    const topLocation = Object.entries(ctx.revenueByLocation || {})
+      .sort((a, b) => b[1] - a[1])[0];
 
-Top 3 Locations:
-${topLocations}
+    // Fast path for common questions (no AI needed)
+    if (question.toLowerCase().includes('7 days')) {
+      return res.json({
+        answer: `In the last 7 days, you made ${last7DaysRevenue.toLocaleString()} GMD from ${last7DaysSales} sales.`
+      });
+    }
 
-Sales Last 3 Days: ${last3DaysSales} units
-Revenue Last 3 Days: ${last3DaysRevenue}
+    const summary = `
+Total Sales: ${ctx.totalSales}
+Total Revenue: ${ctx.totalRevenue}
 
-Daily Breakdown (last 3 days):
-${recentBreakdown}`;
+Last 7 Days:
+- Sales: ${last7DaysSales}
+- Revenue: ${last7DaysRevenue}
 
-    const prompt = `You are a professional sales data analyst.
+Top Agent:
+- ${topAgent?.[0]} (${topAgent?.[1]})
 
-You MUST ONLY answer using the provided data.
+Top Location:
+- ${topLocation?.[0]} (${topLocation?.[1]})
+`;
+
+    const prompt = `
+You are a professional sales analyst.
+
+Use ONLY the data below.
+Do NOT say "not enough data" if values exist.
 Do NOT guess.
-If the data is missing, say "Not enough data".
 
 DATA:
 ${summary}
 
-RULES:
-- Be concise (2-3 sentences max)
-- Use numbers from the data
-- Do not hallucinate
-- If asked about time (e.g. last 3 days), use the computed values above
+Answer the question clearly using numbers.
 
-QUESTION:
-${question}`;
+Question:
+${question}
+`;
 
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
