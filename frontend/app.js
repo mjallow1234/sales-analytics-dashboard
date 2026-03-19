@@ -391,6 +391,8 @@ async function askAI(question, data) {
     revenueByAgent: data.revenueByAgent,
     revenueByLocation: data.revenueByLocation,
     salesByProduct: data.salesByProduct,
+    salesOverTime: data.salesOverTime,
+    revenueOverTime: data.revenueOverTime,
     revenueGrowth: data.revenueGrowth
   });
 
