@@ -581,6 +581,21 @@ display:none;
   margin-bottom: 12px;
 }
 
+.smart-insights {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.8;
+  display: none;
+}
+
+.smart-insight-item {
+  padding: 4px 0;
+}
+
 .ai-insights {
   background: #f8fafc;
   border-radius: 8px;

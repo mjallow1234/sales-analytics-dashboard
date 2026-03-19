@@ -372,11 +372,70 @@ function generateInsights(data) {
   return insights;
 }
 
+function generateSmartInsights(data) {
+  const insights = [];
+
+  // Compute last 7 days and previous 7 days revenue
+  const now = new Date();
+  const last7Days = new Date();
+  last7Days.setDate(now.getDate() - 7);
+  const prev7Days = new Date();
+  prev7Days.setDate(now.getDate() - 14);
+
+  let last7DaysRevenue = 0;
+  let previous7DaysRevenue = 0;
+
+  Object.entries(data.revenueOverTime || {}).forEach(([date, value]) => {
+    const d = new Date(date);
+    if (d >= last7Days) {
+      last7DaysRevenue += value;
+    } else if (d >= prev7Days) {
+      previous7DaysRevenue += value;
+    }
+  });
+
+  if (previous7DaysRevenue > 0 && last7DaysRevenue < previous7DaysRevenue) {
+    insights.push('\u26a0 Revenue dropped compared to last week');
+  } else if (previous7DaysRevenue > 0 && last7DaysRevenue > previous7DaysRevenue) {
+    insights.push('\ud83d\udcc8 Revenue is up compared to last week');
+  }
+
+  // Top agent share
+  const agentEntries = Object.entries(data.revenueByAgent || {}).sort((a, b) => b[1] - a[1]);
+  const totalAgentRevenue = agentEntries.reduce((sum, [, v]) => sum + v, 0);
+  if (agentEntries.length > 0 && totalAgentRevenue > 0) {
+    const topAgentShare = agentEntries[0][1] / totalAgentRevenue;
+    if (topAgentShare > 0.5) {
+      insights.push('\ud83d\udd25 One agent dominates over 50% of sales');
+    }
+  }
+
+  // Repeat customer loyalty
+  const repeatCustomers = data.repeatCustomers || 0;
+  const totalCustomers = data.totalCustomers || 0;
+  if (totalCustomers > 0 && repeatCustomers / totalCustomers > 0.3) {
+    insights.push('\ud83d\udc8e Strong customer loyalty detected');
+  }
+
+  return insights;
+}
+
 function renderInsights(data) {
   const container = document.getElementById('aiInsights');
   if (!container) return;
   const insights = generateInsights(data);
   container.innerHTML = insights.map(i => `<div>\u2022 ${i}</div>`).join('');
+
+  // Smart insights
+  const smartContainer = document.getElementById('smartInsights');
+  if (!smartContainer) return;
+  const smart = generateSmartInsights(data);
+  if (smart.length > 0) {
+    smartContainer.innerHTML = smart.map(i => `<div class="smart-insight-item">${i}</div>`).join('');
+    smartContainer.style.display = 'block';
+  } else {
+    smartContainer.style.display = 'none';
+  }
 }
 
 // AI Chat
