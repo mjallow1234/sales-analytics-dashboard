@@ -73,26 +73,28 @@ app.post('/ai-query', async (req, res) => {
   try {
     const ctx = typeof context === 'string' ? JSON.parse(context) : (context || {});
 
-    // Time-based calculations (last 7 days)
+    // Time-based calculations
     const now = new Date();
+    const last3Days = new Date();
+    last3Days.setDate(now.getDate() - 3);
     const last7Days = new Date();
     last7Days.setDate(now.getDate() - 7);
 
+    let last3DaysSales = 0;
+    let last3DaysRevenue = 0;
     let last7DaysSales = 0;
     let last7DaysRevenue = 0;
 
     Object.entries(ctx.salesOverTime || {}).forEach(([date, count]) => {
       const d = new Date(date);
-      if (d >= last7Days) {
-        last7DaysSales += count;
-      }
+      if (d >= last3Days) last3DaysSales += count;
+      if (d >= last7Days) last7DaysSales += count;
     });
 
     Object.entries(ctx.revenueOverTime || {}).forEach(([date, revenue]) => {
       const d = new Date(date);
-      if (d >= last7Days) {
-        last7DaysRevenue += revenue;
-      }
+      if (d >= last3Days) last3DaysRevenue += revenue;
+      if (d >= last7Days) last7DaysRevenue += revenue;
     });
 
     // Extract top agent and location
@@ -102,39 +104,59 @@ app.post('/ai-query', async (req, res) => {
     const topLocation = Object.entries(ctx.revenueByLocation || {})
       .sort((a, b) => b[1] - a[1])[0];
 
-    // Fast path for common questions (no AI needed)
-    if (question.toLowerCase().includes('7 days')) {
+    // Intent detection — handle key queries without AI
+    const q = question.toLowerCase();
+
+    if (q.includes('3 day')) {
+      return res.json({
+        answer: `In the last 3 days, you made ${last3DaysRevenue.toLocaleString()} GMD from ${last3DaysSales} sales.`
+      });
+    }
+
+    if (q.includes('7 day')) {
       return res.json({
         answer: `In the last 7 days, you made ${last7DaysRevenue.toLocaleString()} GMD from ${last7DaysSales} sales.`
       });
     }
 
+    if (q.includes('top agent')) {
+      return res.json({
+        answer: `${topAgent[0]} is your top agent with ${topAgent[1].toLocaleString()} GMD in revenue.`
+      });
+    }
+
+    if (q.includes('top location')) {
+      return res.json({
+        answer: `${topLocation[0]} is your top location generating ${topLocation[1].toLocaleString()} GMD.`
+      });
+    }
+
+    // Summary with exact computed values for AI context
     const summary = `
 Total Sales: ${ctx.totalSales}
 Total Revenue: ${ctx.totalRevenue}
-
-Last 7 Days:
-- Sales: ${last7DaysSales}
-- Revenue: ${last7DaysRevenue}
-
-Top Agent:
-- ${topAgent?.[0]} (${topAgent?.[1]})
-
-Top Location:
-- ${topLocation?.[0]} (${topLocation?.[1]})
+Last 3 Days Revenue: ${last3DaysRevenue}
+Last 3 Days Sales: ${last3DaysSales}
+Last 7 Days Revenue: ${last7DaysRevenue}
+Last 7 Days Sales: ${last7DaysSales}
+Top Agent: ${topAgent?.[0]} (${topAgent?.[1]})
+Top Location: ${topLocation?.[0]} (${topLocation?.[1]})
 `;
 
+    // AI only used for insights/explanations, not math
     const prompt = `
-You are a professional sales analyst.
+You are a sales analyst.
 
-Use ONLY the data below.
-Do NOT say "not enough data" if values exist.
-Do NOT guess.
+STRICT RULES:
+- DO NOT assume anything
+- DO NOT invent numbers
+- DO NOT average or estimate
+- ONLY use the provided numbers
 
 DATA:
 ${summary}
 
-Answer the question clearly using numbers.
+Explain insights clearly.
 
 Question:
 ${question}
