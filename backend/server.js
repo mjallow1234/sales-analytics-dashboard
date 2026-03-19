@@ -104,16 +104,33 @@ app.post('/ai-query', async (req, res) => {
     const topLocation = Object.entries(ctx.revenueByLocation || {})
       .sort((a, b) => b[1] - a[1])[0];
 
-    // Intent detection — handle key queries without AI
+    // Intent detection — flexible matching
     const q = question.toLowerCase();
 
-    if (q.includes('3 day')) {
+    const is3Days = q.includes('3 day') || q.includes('three day');
+    const is7Days = q.includes('7 day') || q.includes('seven day') || q.includes('past week');
+    const isRevenue = q.includes('money') || q.includes('revenue') || q.includes('made');
+
+    // Fast paths — instant backend-computed answers
+    if (is3Days && isRevenue) {
       return res.json({
         answer: `In the last 3 days, you made ${last3DaysRevenue.toLocaleString()} GMD from ${last3DaysSales} sales.`
       });
     }
 
-    if (q.includes('7 day')) {
+    if (is7Days && isRevenue) {
+      return res.json({
+        answer: `In the last 7 days, you made ${last7DaysRevenue.toLocaleString()} GMD from ${last7DaysSales} sales.`
+      });
+    }
+
+    if (is3Days) {
+      return res.json({
+        answer: `In the last 3 days, you made ${last3DaysRevenue.toLocaleString()} GMD from ${last3DaysSales} sales.`
+      });
+    }
+
+    if (is7Days) {
       return res.json({
         answer: `In the last 7 days, you made ${last7DaysRevenue.toLocaleString()} GMD from ${last7DaysSales} sales.`
       });
@@ -131,19 +148,21 @@ app.post('/ai-query', async (req, res) => {
       });
     }
 
-    // Summary with exact computed values for AI context
+    if (q.includes('sales flow') || q.includes('performance') || q.includes('summary')) {
+      return res.json({
+        answer: `You have generated ${ctx.totalRevenue.toLocaleString()} GMD from ${ctx.totalSales} sales. Your top agent is ${topAgent[0]} and your top location is ${topLocation[0]}. Recent activity shows ${last7DaysSales} sales in the last 7 days.`
+      });
+    }
+
+    // No fast path matched — use AI for complex insight questions only
     const summary = `
 Total Sales: ${ctx.totalSales}
 Total Revenue: ${ctx.totalRevenue}
-Last 3 Days Revenue: ${last3DaysRevenue}
-Last 3 Days Sales: ${last3DaysSales}
 Last 7 Days Revenue: ${last7DaysRevenue}
-Last 7 Days Sales: ${last7DaysSales}
-Top Agent: ${topAgent?.[0]} (${topAgent?.[1]})
-Top Location: ${topLocation?.[0]} (${topLocation?.[1]})
+Top Agent: ${topAgent?.[0]}
+Top Location: ${topLocation?.[0]}
 `;
 
-    // AI only used for insights/explanations, not math
     const prompt = `
 You are a sales analyst.
 
