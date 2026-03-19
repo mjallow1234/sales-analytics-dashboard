@@ -104,57 +104,49 @@ app.post('/ai-query', async (req, res) => {
     const topLocation = Object.entries(ctx.revenueByLocation || {})
       .sort((a, b) => b[1] - a[1])[0];
 
-    // Intent detection — flexible matching
+    // Intent detection
     const q = question.toLowerCase();
 
-    const is3Days = q.includes('3 day') || q.includes('three day');
-    const is7Days = q.includes('7 day') || q.includes('seven day') || q.includes('past week');
-    const isRevenue = q.includes('money') || q.includes('revenue') || q.includes('made');
+    // FAST ENGINE — instant backend-computed answers, no AI
 
-    // Fast paths — instant backend-computed answers
-    if (is3Days && isRevenue) {
+    // Revenue last X days
+    if (q.includes('3 day')) {
       return res.json({
         answer: `In the last 3 days, you made ${last3DaysRevenue.toLocaleString()} GMD from ${last3DaysSales} sales.`
       });
     }
 
-    if (is7Days && isRevenue) {
+    if (q.includes('7 day')) {
       return res.json({
         answer: `In the last 7 days, you made ${last7DaysRevenue.toLocaleString()} GMD from ${last7DaysSales} sales.`
       });
     }
 
-    if (is3Days) {
-      return res.json({
-        answer: `In the last 3 days, you made ${last3DaysRevenue.toLocaleString()} GMD from ${last3DaysSales} sales.`
-      });
-    }
-
-    if (is7Days) {
-      return res.json({
-        answer: `In the last 7 days, you made ${last7DaysRevenue.toLocaleString()} GMD from ${last7DaysSales} sales.`
-      });
-    }
-
-    if (q.includes('top agent')) {
+    // Top agent
+    if (q.includes('top agent') || q.includes('best agent')) {
       return res.json({
         answer: `${topAgent[0]} is your top agent with ${topAgent[1].toLocaleString()} GMD in revenue.`
       });
     }
 
-    if (q.includes('top location')) {
+    // Top location
+    if (q.includes('top location') || q.includes('best location')) {
       return res.json({
         answer: `${topLocation[0]} is your top location generating ${topLocation[1].toLocaleString()} GMD.`
       });
     }
 
-    if (q.includes('sales flow') || q.includes('performance') || q.includes('summary')) {
+    // Summary
+    if (q.includes('summary') || q.includes('sales flow') || q.includes('performance')) {
       return res.json({
-        answer: `You have generated ${ctx.totalRevenue.toLocaleString()} GMD from ${ctx.totalSales} sales. Your top agent is ${topAgent[0]} and your top location is ${topLocation[0]}. Recent activity shows ${last7DaysSales} sales in the last 7 days.`
+        answer: `You have generated ${ctx.totalRevenue.toLocaleString()} GMD from ${ctx.totalSales} sales. Top agent is ${topAgent[0]} and top location is ${topLocation[0]}.`
       });
     }
 
-    // No fast path matched — use AI for complex insight questions only
+    // ONLY if nothing matches — fall back to AI with timeout protection
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 5000);
+
     const summary = `
 Total Sales: ${ctx.totalSales}
 Total Revenue: ${ctx.totalRevenue}
@@ -188,7 +180,8 @@ ${question}
         model: 'phi3',
         prompt: prompt,
         stream: false
-      })
+      }),
+      signal: controller.signal
     });
 
     const data = await response.json();
