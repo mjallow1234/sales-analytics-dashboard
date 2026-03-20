@@ -253,11 +253,15 @@ function processSales(data, filters = {}) {
 
   // --- Anomaly detection, trends, recommendations ---
   const now = new Date();
+  const last3Start = new Date(now);
+  last3Start.setDate(now.getDate() - 3);
   const last7Start = new Date(now);
   last7Start.setDate(now.getDate() - 7);
   const prev7Start = new Date(now);
   prev7Start.setDate(now.getDate() - 14);
 
+  let last3DaysRevenue = 0;
+  let last3DaysSales = 0;
   let last7DaysRevenue = 0;
   let previous7DaysRevenue = 0;
   let last7DaysSales = 0;
@@ -265,12 +269,14 @@ function processSales(data, filters = {}) {
 
   Object.entries(revenueOverTime).forEach(([date, value]) => {
     const d = new Date(date);
+    if (d >= last3Start) last3DaysRevenue += value;
     if (d >= last7Start) last7DaysRevenue += value;
     else if (d >= prev7Start) previous7DaysRevenue += value;
   });
 
   Object.entries(salesOverTime).forEach(([date, count]) => {
     const d = new Date(date);
+    if (d >= last3Start) last3DaysSales += count;
     if (d >= last7Start) last7DaysSales += count;
     else if (d >= prev7Start) previous7DaysSales += count;
   });
@@ -340,6 +346,13 @@ function processSales(data, filters = {}) {
     salesByProduct,
     revenueByLocation,
     revenueGrowth,
+    last3DaysRevenue,
+    last3DaysSales,
+    last7DaysRevenue,
+    last7DaysSales,
+    previous7DaysRevenue,
+    topAgent: topAgentEntry ? { name: topAgentName, revenue: topAgentRevenue } : null,
+    topLocation: locEntries[0] ? { name: topLocationName, revenue: topLocationRevenue } : null,
     anomalies,
     trends,
     recommendations,

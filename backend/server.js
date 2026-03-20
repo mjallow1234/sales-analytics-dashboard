@@ -94,41 +94,20 @@ app.post('/ai-query', async (req, res) => {
   try {
     const ctx = typeof context === 'string' ? JSON.parse(context) : (context || {});
 
-    // Time-based calculations
-    const now = new Date();
-    const last3Days = new Date();
-    last3Days.setDate(now.getDate() - 3);
-    const last7Days = new Date();
-    last7Days.setDate(now.getDate() - 7);
-
-    let last3DaysSales = 0;
-    let last3DaysRevenue = 0;
-    let last7DaysSales = 0;
-    let last7DaysRevenue = 0;
-
-    Object.entries(ctx.salesOverTime || {}).forEach(([date, count]) => {
-      const d = new Date(date);
-      if (d >= last3Days) last3DaysSales += count;
-      if (d >= last7Days) last7DaysSales += count;
-    });
-
-    Object.entries(ctx.revenueOverTime || {}).forEach(([date, revenue]) => {
-      const d = new Date(date);
-      if (d >= last3Days) last3DaysRevenue += revenue;
-      if (d >= last7Days) last7DaysRevenue += revenue;
-    });
-
-    // Extract top agent and location
-    const topAgent = Object.entries(ctx.revenueByAgent || {})
-      .sort((a, b) => b[1] - a[1])[0];
-
-    const topLocation = Object.entries(ctx.revenueByLocation || {})
-      .sort((a, b) => b[1] - a[1])[0];
+    // Read precomputed values — no recomputation
+    const last3DaysRevenue = ctx.last3DaysRevenue || 0;
+    const last3DaysSales = ctx.last3DaysSales || 0;
+    const last7DaysRevenue = ctx.last7DaysRevenue || 0;
+    const last7DaysSales = ctx.last7DaysSales || 0;
+    const topAgent = ctx.topAgent || { name: 'N/A', revenue: 0 };
+    const topLocation = ctx.topLocation || { name: 'N/A', revenue: 0 };
+    const anomalies = ctx.anomalies || [];
+    const trends = ctx.trends || [];
 
     // Parse question intent
     const parsed = parseQuery(question);
 
-    // FAST ENGINE — instant backend-computed answers
+    // FAST ENGINE — instant lookups from precomputed data
 
     if (parsed.period === '3d' && parsed.metric === 'revenue') {
       return res.json({
@@ -156,41 +135,26 @@ app.post('/ai-query', async (req, res) => {
 
     if (parsed.type === 'top' && parsed.metric === 'revenue') {
       return res.json({
-        answer: `${topAgent[0]} is your top agent generating ${topAgent[1].toLocaleString()} GMD.`
+        answer: `${topAgent.name} is your top agent generating ${topAgent.revenue.toLocaleString()} GMD.`
       });
     }
 
     if (parsed.type === 'top' && question.toLowerCase().includes('location')) {
       return res.json({
-        answer: `${topLocation[0]} is your top location generating ${topLocation[1].toLocaleString()} GMD.`
+        answer: `${topLocation.name} is your top location generating ${topLocation.revenue.toLocaleString()} GMD.`
       });
     }
 
     if (parsed.type === 'top') {
       return res.json({
-        answer: `${topAgent[0]} is your top agent with ${topAgent[1].toLocaleString()} GMD in revenue.`
+        answer: `${topAgent.name} is your top agent with ${topAgent.revenue.toLocaleString()} GMD in revenue.`
       });
-    }
-
-    // Monthly analysis
-    if (parsed.period === 'month') {
-      const monthly = {};
-      Object.entries(ctx.revenueOverTime || {}).forEach(([date, value]) => {
-        const month = date.slice(0, 7);
-        monthly[month] = (monthly[month] || 0) + value;
-      });
-      const bestMonth = Object.entries(monthly).sort((a, b) => b[1] - a[1])[0];
-      if (bestMonth) {
-        return res.json({
-          answer: `Your best month was ${bestMonth[0]} with ${bestMonth[1].toLocaleString()} GMD in revenue.`
-        });
-      }
     }
 
     // Summary / performance
     if (parsed.type === 'summary') {
       return res.json({
-        answer: `You have generated ${ctx.totalRevenue.toLocaleString()} GMD from ${ctx.totalSales} sales. Top agent is ${topAgent?.[0]} and top location is ${topLocation?.[0]}.`
+        answer: `You have generated ${(ctx.totalRevenue || 0).toLocaleString()} GMD from ${ctx.totalSales || 0} sales. Top agent is ${topAgent.name} and top location is ${topLocation.name}.`
       });
     }
 
@@ -199,14 +163,11 @@ app.post('/ai-query', async (req, res) => {
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 5000);
 
-      const anomalies = ctx.anomalies || [];
-      const trends = ctx.trends || [];
-
       const prompt = `
 You are a sales analyst.
 
 You are given REAL computed data:
-- Total Revenue: ${ctx.totalRevenue}
+- Total Revenue: ${ctx.totalRevenue || 0}
 - Last 7 Days Revenue: ${last7DaysRevenue}
 - Trends: ${trends.join(', ') || 'None'}
 - Anomalies: ${anomalies.join(', ') || 'None'}
@@ -236,9 +197,9 @@ ${question}
       return res.json({ answer: data.response });
     }
 
-    // Default fallback — return computed summary
+    // Default fallback
     res.json({
-      answer: `You have generated ${ctx.totalRevenue.toLocaleString()} GMD from ${ctx.totalSales} sales. Top agent is ${topAgent?.[0]} and top location is ${topLocation?.[0]}.`
+      answer: `You have generated ${(ctx.totalRevenue || 0).toLocaleString()} GMD from ${ctx.totalSales || 0} sales. Top agent is ${topAgent.name} and top location is ${topLocation.name}.`
     });
   } catch (error) {
     console.error('AI query error:', error);

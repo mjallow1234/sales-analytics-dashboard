@@ -435,10 +435,12 @@ async function explainAnomaly(anomalyText) {
         context: {
           totalSales: _lastAnalyticsData.totalSales,
           totalRevenue: _lastAnalyticsData.totalRevenue,
-          revenueByAgent: _lastAnalyticsData.revenueByAgent,
-          revenueByLocation: _lastAnalyticsData.revenueByLocation,
-          salesOverTime: _lastAnalyticsData.salesOverTime,
-          revenueOverTime: _lastAnalyticsData.revenueOverTime,
+          last3DaysRevenue: _lastAnalyticsData.last3DaysRevenue,
+          last3DaysSales: _lastAnalyticsData.last3DaysSales,
+          last7DaysRevenue: _lastAnalyticsData.last7DaysRevenue,
+          last7DaysSales: _lastAnalyticsData.last7DaysSales,
+          topAgent: _lastAnalyticsData.topAgent,
+          topLocation: _lastAnalyticsData.topLocation,
           anomalies: _lastAnalyticsData.anomalies,
           trends: _lastAnalyticsData.trends
         }
@@ -535,14 +537,14 @@ async function askAI(question, data) {
   const context = JSON.stringify({
     totalSales: data.totalSales,
     totalRevenue: data.totalRevenue,
-    totalCustomers: data.totalCustomers,
-    repeatCustomers: data.repeatCustomers,
-    revenueByAgent: data.revenueByAgent,
-    revenueByLocation: data.revenueByLocation,
-    salesByProduct: data.salesByProduct,
-    salesOverTime: data.salesOverTime,
-    revenueOverTime: data.revenueOverTime,
-    revenueGrowth: data.revenueGrowth
+    last3DaysRevenue: data.last3DaysRevenue,
+    last3DaysSales: data.last3DaysSales,
+    last7DaysRevenue: data.last7DaysRevenue,
+    last7DaysSales: data.last7DaysSales,
+    topAgent: data.topAgent,
+    topLocation: data.topLocation,
+    anomalies: data.anomalies,
+    trends: data.trends
   });
 
   const response = await fetch('/ai-query', {
