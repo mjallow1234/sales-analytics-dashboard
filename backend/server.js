@@ -164,19 +164,19 @@ app.post('/ai-query', async (req, res) => {
       setTimeout(() => controller.abort(), 5000);
 
       const prompt = `
-You are a sales analyst.
+You are a senior sales analyst.
 
-You are given REAL computed data:
+DATA:
 - Total Revenue: ${ctx.totalRevenue || 0}
 - Last 7 Days Revenue: ${last7DaysRevenue}
-- Trends: ${trends.join(', ') || 'None'}
-- Anomalies: ${anomalies.join(', ') || 'None'}
+- Anomalies: ${anomalies.join('; ') || 'None'}
+- Trends: ${trends.join('; ') || 'None'}
 
-Rules:
-- NEVER guess or estimate
-- NEVER invent numbers
-- Only explain insights
-- Be concise and actionable
+RULES:
+- Do NOT guess
+- Do NOT estimate
+- Only explain patterns
+- Be short and actionable
 
 Question:
 ${question}
