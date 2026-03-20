@@ -255,6 +255,37 @@ body {
 .settings-panel button{
   margin-top:15px;
 }
+.intelligence-brief {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 12px;
+  margin-top: 12px;
+  display: none;
+  color: #f1f5f9;
+}
+
+.brief-header {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  color: #93c5fd;
+}
+
+.brief-item {
+  padding: 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brief-item:last-child {
+  border-bottom: none;
+}
+
 .dashboard {
   max-width: 1400px;
   margin: auto;

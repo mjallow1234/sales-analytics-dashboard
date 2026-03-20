@@ -343,6 +343,7 @@ function processSales(data, filters = {}) {
     anomalies,
     trends,
     recommendations,
+    intelligenceBrief: [...anomalies, ...trends, ...recommendations],
   };
 }
 

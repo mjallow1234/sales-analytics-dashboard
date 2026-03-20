@@ -339,6 +339,7 @@ async function loadDashboard(filters = {}) {
     }
 
     renderInsights(data);
+    renderBrief(data);
   } catch (err) {
     console.error('Failed to load analytics:', err);
   } finally {
@@ -418,6 +419,19 @@ function generateSmartInsights(data) {
   }
 
   return insights;
+}
+
+function renderBrief(data) {
+  const el = document.getElementById('intelligenceBrief');
+  if (!el) return;
+  const brief = data.intelligenceBrief || [];
+  if (brief.length > 0) {
+    el.innerHTML = '<div class="brief-header">Daily Intelligence Brief</div>' +
+      brief.map(i => `<div class="brief-item">${i}</div>`).join('');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 function renderInsights(data) {
