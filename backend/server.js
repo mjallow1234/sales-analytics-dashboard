@@ -199,27 +199,23 @@ app.post('/ai-query', async (req, res) => {
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 5000);
 
-      const summary = `
-Total Sales: ${ctx.totalSales}
-Total Revenue: ${ctx.totalRevenue}
-Last 7 Days Revenue: ${last7DaysRevenue}
-Top Agent: ${topAgent?.[0]}
-Top Location: ${topLocation?.[0]}
-`;
+      const anomalies = ctx.anomalies || [];
+      const trends = ctx.trends || [];
 
       const prompt = `
 You are a sales analyst.
 
-STRICT RULES:
-- DO NOT assume anything
-- DO NOT invent numbers
-- DO NOT average or estimate
-- ONLY use the provided numbers
+You are given REAL computed data:
+- Total Revenue: ${ctx.totalRevenue}
+- Last 7 Days Revenue: ${last7DaysRevenue}
+- Trends: ${trends.join(', ') || 'None'}
+- Anomalies: ${anomalies.join(', ') || 'None'}
 
-DATA:
-${summary}
-
-Explain insights clearly.
+Rules:
+- NEVER guess or estimate
+- NEVER invent numbers
+- Only explain insights
+- Be concise and actionable
 
 Question:
 ${question}
