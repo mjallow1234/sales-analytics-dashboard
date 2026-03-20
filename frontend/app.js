@@ -421,6 +421,43 @@ function generateSmartInsights(data) {
   return insights;
 }
 
+async function explainAnomaly(anomalyText) {
+  if (!_lastAnalyticsData) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await fetch('/ai-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: `Explain why ${anomalyText}`,
+        context: {
+          totalSales: _lastAnalyticsData.totalSales,
+          totalRevenue: _lastAnalyticsData.totalRevenue,
+          revenueByAgent: _lastAnalyticsData.revenueByAgent,
+          revenueByLocation: _lastAnalyticsData.revenueByLocation,
+          salesOverTime: _lastAnalyticsData.salesOverTime,
+          revenueOverTime: _lastAnalyticsData.revenueOverTime,
+          anomalies: _lastAnalyticsData.anomalies,
+          trends: _lastAnalyticsData.trends
+        }
+      })
+    });
+    const data = await res.json();
+    const msgEl = document.getElementById('aiMessages');
+    if (msgEl) {
+      msgEl.innerHTML += `<div class="ai-msg bot"><strong>Explanation:</strong> ${data.answer}</div>`;
+      msgEl.scrollTop = msgEl.scrollHeight;
+    }
+  } catch (err) {
+    console.error('Explain anomaly failed:', err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Why?';
+  }
+}
+
 function renderBrief(data) {
   const el = document.getElementById('intelligenceBrief');
   if (!el) return;
@@ -440,7 +477,7 @@ function renderInsights(data) {
   if (anomalyEl) {
     const anomalies = data.anomalies || [];
     if (anomalies.length > 0) {
-      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => `<div class="anomaly-item">${a}</div>`).join('');
+      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => `<div class="anomaly-item"><span>${a}</span><button class="explain-btn" onclick="explainAnomaly('${a.replace(/'/g, "\\'")}')">Why?</button></div>`).join('');
       anomalyEl.style.display = 'block';
     } else {
       anomalyEl.style.display = 'none';
