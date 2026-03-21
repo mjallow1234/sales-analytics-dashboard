@@ -160,9 +160,6 @@ app.post('/ai-query', async (req, res) => {
 
     // AI only for trend analysis or explanatory "why" questions
     if (parsed.type === 'trend' || question.toLowerCase().includes('why')) {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 5000);
-
       const prompt = `
 You are a senior sales analyst.
 
@@ -182,19 +179,31 @@ Question:
 ${question}
 `;
 
-      const response = await fetch('http://localhost:11434/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'phi3',
-          prompt: prompt,
-          stream: false
-        }),
-        signal: controller.signal
-      });
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 5000);
 
-      const data = await response.json();
-      return res.json({ answer: data.response });
+        const response = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: 'phi3:mini',
+            prompt,
+            stream: false
+          })
+        });
+
+        const data = await response.json();
+        return res.json({
+          answer: data.response || 'No insight available'
+        });
+      } catch (err) {
+        console.error('AI ERROR:', err);
+        return res.json({
+          answer: '\u26a0 Unable to generate explanation right now. Please try again.'
+        });
+      }
     }
 
     // Default fallback
@@ -203,7 +212,7 @@ ${question}
     });
   } catch (error) {
     console.error('AI query error:', error);
-    res.status(500).json({ answer: 'Local AI service unavailable. Ensure Ollama is running.' });
+    res.json({ answer: '\u26a0 Something went wrong. Please try again.' });
   }
 });
 
