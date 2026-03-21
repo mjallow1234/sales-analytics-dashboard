@@ -433,21 +433,7 @@ async function explainAnomaly(type, btn) {
       body: JSON.stringify({
         type,
         question: 'Explain this anomaly',
-        context: {
-          totalSales: _lastAnalyticsData.totalSales,
-          totalRevenue: _lastAnalyticsData.totalRevenue,
-          totalCustomers: _lastAnalyticsData.totalCustomers,
-          repeatCustomers: _lastAnalyticsData.repeatCustomers,
-          last3DaysRevenue: _lastAnalyticsData.last3DaysRevenue,
-          last3DaysSales: _lastAnalyticsData.last3DaysSales,
-          last7DaysRevenue: _lastAnalyticsData.last7DaysRevenue,
-          last7DaysSales: _lastAnalyticsData.last7DaysSales,
-          previous7DaysRevenue: _lastAnalyticsData.previous7DaysRevenue,
-          topAgent: _lastAnalyticsData.topAgent,
-          topLocation: _lastAnalyticsData.topLocation,
-          anomalies: _lastAnalyticsData.anomalies,
-          trends: _lastAnalyticsData.trends
-        }
+        context: _lastAnalyticsData
       })
     });
     const data = await res.json();

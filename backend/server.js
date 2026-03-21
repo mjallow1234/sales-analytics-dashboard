@@ -87,8 +87,11 @@ function parseQuery(question) {
 
 app.post('/ai-query', async (req, res) => {
   const { question, context, type } = req.body;
-  if (!question) {
-    return res.status(400).json({ error: 'Question is required' });
+
+  console.log('AI TYPE:', type); // DEBUG
+
+  if (!question && !type) {
+    return res.status(400).json({ error: 'Question or type is required' });
   }
 
   try {
@@ -110,15 +113,18 @@ app.post('/ai-query', async (req, res) => {
       let prompt = '';
 
       if (type === 'revenue_drop') {
-        prompt = `Revenue dropped.\n\nData:\n- Last 7 days revenue: ${last7DaysRevenue}\n- Previous 7 days revenue: ${previous7DaysRevenue}\n\nExplain WHY this drop might have happened based on sales patterns. Be specific. No guessing numbers.`;
+        prompt = `Revenue dropped.\n\nLast 7 days: ${last7DaysRevenue}\nPrevious 7 days: ${previous7DaysRevenue}\n\nExplain clearly why revenue might have dropped.`;
       } else if (type === 'agent_dominance') {
-        prompt = `One agent dominates revenue.\n\nData:\n- Top agent: ${topAgent.name}\n- Agent revenue: ${topAgent.revenue}\n- Total revenue: ${ctx.totalRevenue || 0}\n\nExplain risks and implications of this situation.`;
+        prompt = `One agent dominates revenue.\n\nTop agent: ${topAgent.name}\nRevenue: ${topAgent.revenue}\nTotal revenue: ${ctx.totalRevenue || 0}\n\nExplain the business risk.`;
       } else if (type === 'sales_spike') {
-        prompt = `Sales increased sharply this week.\n\nData:\n- Last 7 days sales: ${last7DaysSales}\n- Last 7 days revenue: ${last7DaysRevenue}\n- Previous 7 days revenue: ${previous7DaysRevenue}\n\nExplain what might be driving this spike. Be specific.`;
+        prompt = `Sales increased sharply this week.\n\nLast 7 days sales: ${last7DaysSales}\nLast 7 days revenue: ${last7DaysRevenue}\nPrevious 7 days revenue: ${previous7DaysRevenue}\n\nExplain what might be driving this spike. Be specific.`;
       } else if (type === 'low_retention') {
-        prompt = `Low repeat customers detected.\n\nData:\n- Repeat customers: ${ctx.repeatCustomers || 0}\n- Total customers: ${ctx.totalCustomers || 0}\n\nExplain why retention may be low and business impact.`;
-      } else {
-        prompt = `Explain the sales situation.\n\nData:\n- Total Revenue: ${ctx.totalRevenue || 0}\n- Last 7 Days Revenue: ${last7DaysRevenue}\n- Anomalies: ${anomalies.join('; ') || 'None'}\n- Trends: ${trends.join('; ') || 'None'}\n\nExplain patterns clearly.`;
+        prompt = `Customer retention is low.\n\nRepeat customers: ${ctx.repeatCustomers || 0}\nTotal customers: ${ctx.totalCustomers || 0}\n\nExplain why this is a problem.`;
+      }
+
+      // CRITICAL FALLBACK — prompt must always exist
+      if (!prompt || prompt.trim() === '') {
+        prompt = `Explain this sales situation based on anomalies:\n${JSON.stringify(anomalies)}`;
       }
 
       try {
@@ -133,7 +139,7 @@ app.post('/ai-query', async (req, res) => {
         });
 
         const data = await response.json();
-        return res.json({ answer: data.response || 'No insight available' });
+        return res.json({ answer: data.response || data.message?.content || 'No insight available' });
       } catch (err) {
         console.error('AI ERROR:', err);
         return res.json({ answer: '\u26a0 Unable to generate explanation right now. Please try again.' });
