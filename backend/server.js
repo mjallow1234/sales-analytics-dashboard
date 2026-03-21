@@ -111,8 +111,11 @@ app.post('/ai-query', async (req, res) => {
     // Type-specific instant explanations (no AI dependency)
     if (type) {
       if (type === 'revenue_drop') {
+        const dropPercent = previous7DaysRevenue > 0
+          ? Math.round(((previous7DaysRevenue - last7DaysRevenue) / previous7DaysRevenue) * 100)
+          : 0;
         return res.json({
-          answer: `Revenue dropped because total revenue in the last 7 days (${last7DaysRevenue.toLocaleString()} GMD) is lower than the previous 7 days (${previous7DaysRevenue.toLocaleString()} GMD). This indicates reduced sales activity, fewer transactions, or lower order values.`
+          answer: `Revenue dropped by ${dropPercent}% compared to last week (${previous7DaysRevenue.toLocaleString()} GMD → ${last7DaysRevenue.toLocaleString()} GMD). This indicates reduced sales activity, fewer transactions, or lower order values.`
         });
       }
 
