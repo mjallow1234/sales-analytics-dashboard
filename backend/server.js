@@ -108,42 +108,35 @@ app.post('/ai-query', async (req, res) => {
     const anomalies = ctx.anomalies || [];
     const trends = ctx.trends || [];
 
-    // Type-specific anomaly explanations
+    // Type-specific instant explanations (no AI dependency)
     if (type) {
-      let prompt = '';
-
       if (type === 'revenue_drop') {
-        prompt = `Revenue dropped.\n\nLast 7 days: ${last7DaysRevenue}\nPrevious 7 days: ${previous7DaysRevenue}\n\nExplain clearly why revenue might have dropped.`;
-      } else if (type === 'agent_dominance') {
-        prompt = `One agent dominates revenue.\n\nTop agent: ${topAgent.name}\nRevenue: ${topAgent.revenue}\nTotal revenue: ${ctx.totalRevenue || 0}\n\nExplain the business risk.`;
-      } else if (type === 'sales_spike') {
-        prompt = `Sales increased sharply this week.\n\nLast 7 days sales: ${last7DaysSales}\nLast 7 days revenue: ${last7DaysRevenue}\nPrevious 7 days revenue: ${previous7DaysRevenue}\n\nExplain what might be driving this spike. Be specific.`;
-      } else if (type === 'low_retention') {
-        prompt = `Customer retention is low.\n\nRepeat customers: ${ctx.repeatCustomers || 0}\nTotal customers: ${ctx.totalCustomers || 0}\n\nExplain why this is a problem.`;
-      }
-
-      // CRITICAL FALLBACK — prompt must always exist
-      if (!prompt || prompt.trim() === '') {
-        prompt = `Explain this sales situation based on anomalies:\n${JSON.stringify(anomalies)}`;
-      }
-
-      try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({ model: 'phi3:mini', prompt, stream: false })
+        return res.json({
+          answer: `Revenue dropped because total revenue in the last 7 days (${last7DaysRevenue.toLocaleString()} GMD) is lower than the previous 7 days (${previous7DaysRevenue.toLocaleString()} GMD). This indicates reduced sales activity, fewer transactions, or lower order values.`
         });
-
-        const data = await response.json();
-        return res.json({ answer: data.response || data.message?.content || 'No insight available' });
-      } catch (err) {
-        console.error('AI ERROR:', err);
-        return res.json({ answer: '\u26a0 Unable to generate explanation right now. Please try again.' });
       }
+
+      if (type === 'agent_dominance') {
+        return res.json({
+          answer: `One agent (${topAgent.name}) is generating over 50% of total revenue (${topAgent.revenue.toLocaleString()} GMD out of ${(ctx.totalRevenue || 0).toLocaleString()} GMD), meaning sales are heavily dependent on a single performer. This creates risk if that agent becomes inactive.`
+        });
+      }
+
+      if (type === 'sales_spike') {
+        return res.json({
+          answer: `Sales increased sharply — last 7 days saw ${last7DaysSales} sales generating ${last7DaysRevenue.toLocaleString()} GMD vs previous 7 days at ${previous7DaysRevenue.toLocaleString()} GMD. This could indicate a successful promotion, seasonal demand, or new customer acquisition.`
+        });
+      }
+
+      if (type === 'low_retention') {
+        return res.json({
+          answer: `Low repeat customers means most buyers are not returning. Only ${ctx.repeatCustomers || 0} out of ${ctx.totalCustomers || 0} customers are repeat buyers. This indicates weak customer retention and lack of loyalty.`
+        });
+      }
+
+      return res.json({
+        answer: 'Insight available but no detailed explanation configured.'
+      });
     }
 
     // Parse question intent
@@ -200,52 +193,16 @@ app.post('/ai-query', async (req, res) => {
       });
     }
 
-    // AI only for trend analysis or explanatory "why" questions
+    // Trend / why questions — instant backend answers
     if (parsed.type === 'trend' || question.toLowerCase().includes('why')) {
-      const prompt = `
-You are a senior sales analyst.
+      const parts = [];
+      if (anomalies.length > 0) parts.push('Anomalies: ' + anomalies.join('. '));
+      if (trends.length > 0) parts.push('Trends: ' + trends.join('. '));
+      if (parts.length === 0) parts.push('No significant anomalies or trends detected.');
 
-DATA:
-- Total Revenue: ${ctx.totalRevenue || 0}
-- Last 7 Days Revenue: ${last7DaysRevenue}
-- Anomalies: ${anomalies.join('; ') || 'None'}
-- Trends: ${trends.join('; ') || 'None'}
-
-RULES:
-- Do NOT guess
-- Do NOT estimate
-- Only explain patterns
-- Be short and actionable
-
-Question:
-${question}
-`;
-
-      try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: 'phi3:mini',
-            prompt,
-            stream: false
-          })
-        });
-
-        const data = await response.json();
-        return res.json({
-          answer: data.response || 'No insight available'
-        });
-      } catch (err) {
-        console.error('AI ERROR:', err);
-        return res.json({
-          answer: '\u26a0 Unable to generate explanation right now. Please try again.'
-        });
-      }
+      return res.json({
+        answer: `Based on your data: ${parts.join(' | ')} Total revenue is ${(ctx.totalRevenue || 0).toLocaleString()} GMD with ${last7DaysRevenue.toLocaleString()} GMD in the last 7 days.`
+      });
     }
 
     // Default fallback
