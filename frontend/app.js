@@ -421,17 +421,17 @@ function generateSmartInsights(data) {
   return insights;
 }
 
-async function explainAnomaly(anomalyText) {
+async function explainAnomaly(type, btn) {
   if (!_lastAnalyticsData) return;
-  const btn = event.target;
+  btn.innerText = 'Thinking...';
   btn.disabled = true;
-  btn.textContent = '...';
+
   try {
     const res = await fetch('/ai-query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        question: `Explain why ${anomalyText}`,
+        question: `Explain ${type}`,
         context: {
           totalSales: _lastAnalyticsData.totalSales,
           totalRevenue: _lastAnalyticsData.totalRevenue,
@@ -447,17 +447,13 @@ async function explainAnomaly(anomalyText) {
       })
     });
     const data = await res.json();
-    const msgEl = document.getElementById('aiMessages');
-    if (msgEl) {
-      msgEl.innerHTML += `<div class="ai-msg bot"><strong>Explanation:</strong> ${data.answer}</div>`;
-      msgEl.scrollTop = msgEl.scrollHeight;
-    }
+    alert(data.answer);
   } catch (err) {
-    console.error('Explain anomaly failed:', err);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Why?';
+    alert('Failed to get explanation');
   }
+
+  btn.innerText = 'Why?';
+  btn.disabled = false;
 }
 
 function renderBrief(data) {
@@ -479,7 +475,7 @@ function renderInsights(data) {
   if (anomalyEl) {
     const anomalies = data.anomalies || [];
     if (anomalies.length > 0) {
-      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => `<div class="anomaly-item"><span>${a}</span><button class="explain-btn" onclick="explainAnomaly('${a.replace(/'/g, "\\'")}')">Why?</button></div>`).join('');
+      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => `<div class="anomaly-item"><span>${a}</span><button class="explain-btn" onclick="explainAnomaly('${a.replace(/'/g, "\\'")}', this)">Why?</button></div>`).join('');
       anomalyEl.style.display = 'block';
     } else {
       anomalyEl.style.display = 'none';
