@@ -86,7 +86,7 @@ function parseQuery(question) {
 }
 
 app.post('/ai-query', async (req, res) => {
-  const { question, context } = req.body;
+  const { question, context, type } = req.body;
   if (!question) {
     return res.status(400).json({ error: 'Question is required' });
   }
@@ -99,10 +99,46 @@ app.post('/ai-query', async (req, res) => {
     const last3DaysSales = ctx.last3DaysSales || 0;
     const last7DaysRevenue = ctx.last7DaysRevenue || 0;
     const last7DaysSales = ctx.last7DaysSales || 0;
+    const previous7DaysRevenue = ctx.previous7DaysRevenue || 0;
     const topAgent = ctx.topAgent || { name: 'N/A', revenue: 0 };
     const topLocation = ctx.topLocation || { name: 'N/A', revenue: 0 };
     const anomalies = ctx.anomalies || [];
     const trends = ctx.trends || [];
+
+    // Type-specific anomaly explanations
+    if (type) {
+      let prompt = '';
+
+      if (type === 'revenue_drop') {
+        prompt = `Revenue dropped.\n\nData:\n- Last 7 days revenue: ${last7DaysRevenue}\n- Previous 7 days revenue: ${previous7DaysRevenue}\n\nExplain WHY this drop might have happened based on sales patterns. Be specific. No guessing numbers.`;
+      } else if (type === 'agent_dominance') {
+        prompt = `One agent dominates revenue.\n\nData:\n- Top agent: ${topAgent.name}\n- Agent revenue: ${topAgent.revenue}\n- Total revenue: ${ctx.totalRevenue || 0}\n\nExplain risks and implications of this situation.`;
+      } else if (type === 'sales_spike') {
+        prompt = `Sales increased sharply this week.\n\nData:\n- Last 7 days sales: ${last7DaysSales}\n- Last 7 days revenue: ${last7DaysRevenue}\n- Previous 7 days revenue: ${previous7DaysRevenue}\n\nExplain what might be driving this spike. Be specific.`;
+      } else if (type === 'low_retention') {
+        prompt = `Low repeat customers detected.\n\nData:\n- Repeat customers: ${ctx.repeatCustomers || 0}\n- Total customers: ${ctx.totalCustomers || 0}\n\nExplain why retention may be low and business impact.`;
+      } else {
+        prompt = `Explain the sales situation.\n\nData:\n- Total Revenue: ${ctx.totalRevenue || 0}\n- Last 7 Days Revenue: ${last7DaysRevenue}\n- Anomalies: ${anomalies.join('; ') || 'None'}\n- Trends: ${trends.join('; ') || 'None'}\n\nExplain patterns clearly.`;
+      }
+
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({ model: 'phi3:mini', prompt, stream: false })
+        });
+
+        const data = await response.json();
+        return res.json({ answer: data.response || 'No insight available' });
+      } catch (err) {
+        console.error('AI ERROR:', err);
+        return res.json({ answer: '\u26a0 Unable to generate explanation right now. Please try again.' });
+      }
+    }
 
     // Parse question intent
     const parsed = parseQuery(question);

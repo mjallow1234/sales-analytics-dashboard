@@ -431,14 +431,18 @@ async function explainAnomaly(type, btn) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        question: `Explain ${type}`,
+        type,
+        question: 'Explain this anomaly',
         context: {
           totalSales: _lastAnalyticsData.totalSales,
           totalRevenue: _lastAnalyticsData.totalRevenue,
+          totalCustomers: _lastAnalyticsData.totalCustomers,
+          repeatCustomers: _lastAnalyticsData.repeatCustomers,
           last3DaysRevenue: _lastAnalyticsData.last3DaysRevenue,
           last3DaysSales: _lastAnalyticsData.last3DaysSales,
           last7DaysRevenue: _lastAnalyticsData.last7DaysRevenue,
           last7DaysSales: _lastAnalyticsData.last7DaysSales,
+          previous7DaysRevenue: _lastAnalyticsData.previous7DaysRevenue,
           topAgent: _lastAnalyticsData.topAgent,
           topLocation: _lastAnalyticsData.topLocation,
           anomalies: _lastAnalyticsData.anomalies,
@@ -475,7 +479,13 @@ function renderInsights(data) {
   if (anomalyEl) {
     const anomalies = data.anomalies || [];
     if (anomalies.length > 0) {
-      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => `<div class="anomaly-item"><span>${a}</span><button class="explain-btn" onclick="explainAnomaly('${a.replace(/'/g, "\\'")}', this)">Why?</button></div>`).join('');
+      anomalyEl.innerHTML = '<div class="section-label">Anomalies</div>' + anomalies.map(a => {
+        let aType = 'general';
+        if (a.includes('Revenue dropped')) aType = 'revenue_drop';
+        else if (a.includes('Sales increased')) aType = 'sales_spike';
+        else if (a.includes('generating over 50%')) aType = 'agent_dominance';
+        return `<div class="anomaly-item"><span>${a}</span><button class="explain-btn" onclick="explainAnomaly('${aType}', this)">Why?</button></div>`;
+      }).join('');
       anomalyEl.style.display = 'block';
     } else {
       anomalyEl.style.display = 'none';
