@@ -47,25 +47,33 @@ function formatFinance(value) {
   if (value === null || value === undefined) return '0';
   const num = Number(value);
   if (isNaN(num)) return '0';
-  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + 'B';
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
-  if (num >= 1_000) return (num / 1_000).toFixed(1) + 'K';
-  return num.toString();
+  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + 'B';
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + 'M';
+  if (num >= 1_000) return (num / 1_000).toFixed(2) + 'K';
+  return num.toFixed(2);
 }
 
-function animateCounter(element, finalValue, duration) {
+function formatSales(value) {
+  if (value === null || value === undefined) return '0';
+  const num = Math.round(Number(value));
+  if (isNaN(num)) return '0';
+  return num.toLocaleString();
+}
+
+function animateCounter(element, finalValue, duration, formatter) {
   duration = duration || 800;
+  const fmt = formatter || formatFinance;
   const end = Number(finalValue) || 0;
   const startTime = performance.now();
   element.title = end.toLocaleString();
   function update(now) {
     const progress = Math.min((now - startTime) / duration, 1);
     const current = Math.floor(end * progress);
-    element.textContent = formatFinance(current);
+    element.textContent = fmt(current);
     if (progress < 1) {
       requestAnimationFrame(update);
     } else {
-      element.textContent = formatFinance(end);
+      element.textContent = fmt(end);
     }
   }
   requestAnimationFrame(update);
@@ -594,13 +602,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function updateCards(data) {
   const elSales = document.getElementById('total-sales');
-  if (elSales) animateCounter(elSales, data.totalSales);
+  if (elSales) animateCounter(elSales, data.totalSales, 800, formatSales);
   const elRev = document.getElementById('total-revenue');
   if (elRev) animateCounter(elRev, data.totalRevenue);
   const elCust = document.getElementById('total-customers');
-  if (elCust) animateCounter(elCust, data.totalCustomers);
+  if (elCust) animateCounter(elCust, data.totalCustomers, 800, formatSales);
   const elRep = document.getElementById('repeatCustomers');
-  if (elRep) animateCounter(elRep, data.repeatCustomers || 0);
+  if (elRep) animateCounter(elRep, data.repeatCustomers || 0, 800, formatSales);
 
   const growthEl = document.getElementById('revenueGrowth');
   if (growthEl && data.revenueGrowth !== undefined) {
