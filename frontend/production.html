@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Production Intelligence Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Loading overlay — hidden by productionApp.js after data loads -->
+  <div id="loadingOverlay" style="display:flex;">
+    <span>Loading production data&hellip;</span>
+  </div>
+
+  <header>
+    <h1>Production Intelligence Dashboard</h1>
+  </header>
+
+  <nav class="dashboard-nav">
+    <a href="index.html" class="nav-link">Sales Analytics</a>
+    <a href="production.html" class="nav-link active">Production Intelligence</a>
+  </nav>
+
+  <!-- Anomaly / Insights Sidebar -->
+  <aside id="prodSidebar" class="ai-sidebar">
+    <button id="toggle-prod-sidebar" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+
+    <!-- Incomplete production days -->
+    <div class="anomaly-alerts" id="incompleteSection" style="display:none;">
+      <div class="sidebar-section-title">Incomplete Production Days</div>
+      <div id="incompleteList"></div>
+    </div>
+
+    <!-- Production gaps -->
+    <div class="trend-insights" id="gapsSection" style="display:none;">
+      <div class="sidebar-section-title">Production Gaps (&ge;7 days)</div>
+      <div id="gapsList"></div>
+    </div>
+
+    <!-- Peak / streak highlights -->
+    <div class="smart-insights" id="highlightsSection" style="display:none;">
+      <div class="sidebar-section-title">Highlights</div>
+      <div id="highlightsList"></div>
+    </div>
+
+    <!-- Distribution anomalies -->
+    <div class="recommendation-insights" id="distSection" style="display:none;">
+      <div class="sidebar-section-title">Distribution Anomalies</div>
+      <div id="distList"></div>
+    </div>
+  </aside>
+
+  <main id="prodMain">
+
+    <!-- 8 KPI Cards -->
+    <div class="prod-kpi-grid">
+
+      <div class="prod-kpi-card kpi-blue">
+        <span class="kpi-label">Production Days</span>
+        <span class="kpi-value" id="kpiProdDays">—</span>
+        <span class="kpi-sub">Days with active output</span>
+      </div>
+
+      <div class="prod-kpi-card kpi-orange">
+        <span class="kpi-label">Total Batches</span>
+        <span class="kpi-value" id="kpiTotalBatches">—</span>
+        <span class="kpi-sub">Completed production runs</span>
+      </div>
+
+      <div class="prod-kpi-card kpi-green">
+        <span class="kpi-label">Total Output</span>
+        <span class="kpi-value" id="kpiTotalOutput">—</span>
+        <span class="kpi-sub">Bags produced</span>
+      </div>
+
+      <div class="prod-kpi-card kpi-purple">
+        <span class="kpi-label">Total Given Out</span>
+        <span class="kpi-value" id="kpiTotalGivenOut">—</span>
+        <span class="kpi-sub">Units distributed</span>
+      </div>
+
+      <div class="prod-kpi-card kpi-cyan">
+        <span class="kpi-label">Avg Output / Batch</span>
+        <span class="kpi-value" id="kpiAvgOutput">—</span>
+        <span class="kpi-sub">Bags per batch</span>
+      </div>
+
+      <div class="prod-kpi-card kpi-amber">
+        <span class="kpi-label">Avg Temp</span>
+        <span class="kpi-value" id="kpiAvgTemp">—</span>
+        <span class="kpi-sub">Average &deg;C across batches</span>
+      </div>
+
+      <div class="prod-kpi-card kpi-gray">
+        <span class="kpi-label">Weight Processed</span>
+        <span class="kpi-value" id="kpiTotalWeight">—</span>
+        <span class="kpi-sub">Kilograms of raw material</span>
+      </div>
+
+      <div class="prod-kpi-card" id="kpiStockCard">
+        <span class="kpi-label">Net Stock Movement</span>
+        <span class="kpi-value" id="kpiNetStock">—</span>
+        <span class="kpi-sub">Output minus given out</span>
+      </div>
+
+    </div>
+
+    <!-- Executive Summary -->
+    <div class="exec-summary-card">
+      <div class="card-header">Executive Summary</div>
+      <div class="card-body" id="execSummaryBody">
+        <span class="exec-line">Loading&hellip;</span>
+      </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div class="monthly-breakdown-card">
+      <div class="card-header">Monthly Breakdown</div>
+      <table class="monthly-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Prod Days</th>
+            <th>Batches</th>
+            <th>Output</th>
+            <th>Given Out</th>
+          </tr>
+        </thead>
+        <tbody id="monthlyTableBody">
+          <tr><td colspan="5" style="color:#4b5563;font-style:italic;padding:12px 18px;">Loading&hellip;</td></tr>
+        </tbody>
+        <tfoot id="monthlyTableFoot"></tfoot>
+      </table>
+    </div>
+
+    <!-- Charts -->
+    <div class="prod-charts-grid">
+
+      <!-- Output Trend (wide — full row) -->
+      <div class="prod-chart-card prod-chart-wide">
+        <div class="chart-title">Daily Output (Bags Produced)</div>
+        <canvas id="chartOutputTrend"></canvas>
+      </div>
+
+      <!-- Given Out Trend -->
+      <div class="prod-chart-card">
+        <div class="chart-title">Distribution (Given Out)</div>
+        <canvas id="chartGivenOut"></canvas>
+      </div>
+
+      <!-- Temperature Trend -->
+      <div class="prod-chart-card">
+        <div class="chart-title">Average Batch Temperature (&deg;C)</div>
+        <canvas id="chartTemp"></canvas>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="productionApp.js"></script>
+
+</body>
+</html>

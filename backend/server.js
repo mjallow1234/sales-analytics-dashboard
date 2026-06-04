@@ -3,8 +3,9 @@
 const express = require('express');
 const cors = require('cors');
 
-const { getSalesData } = require('./sheetsService');
+const { getSalesData, getProductionData } = require('./sheetsService');
 const { processSales } = require('./analyticsProcessor');
+const { processProduction } = require('./productionProcessor');
 
 const app = express();
 app.use(cors());
@@ -31,6 +32,7 @@ app.get('/health', (req, res) => {
 });
 
 const analyticsCache = new Map();
+const productionCache = new Map();
 const CACHE_TTL = 300000; // 5 minutes
 
 app.get('/analytics', async (req, res) => {
@@ -215,6 +217,31 @@ app.post('/ai-query', async (req, res) => {
   } catch (error) {
     console.error('AI query error:', error);
     res.json({ answer: '\u26a0 Something went wrong. Please try again.' });
+  }
+});
+
+app.get('/production-analytics', async (req, res) => {
+  console.log('Production analytics request received');
+  try {
+    const cacheKey = 'prod:default';
+    const cached = productionCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('Using cached production analytics');
+      return res.json(cached.data);
+    }
+
+    console.log('Refreshing production analytics');
+    const rows = await getProductionData();
+    const analytics = processProduction(rows);
+
+    productionCache.set(cacheKey, { data: analytics, timestamp: Date.now() });
+    res.json(analytics);
+  } catch (error) {
+    console.error('Production analytics endpoint error:', error);
+    res.status(500).json({
+      error: 'Production analytics service unavailable',
+      message: 'Failed to retrieve production data'
+    });
   }
 });
 

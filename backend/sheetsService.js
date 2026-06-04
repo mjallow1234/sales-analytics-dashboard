@@ -22,4 +22,14 @@ async function getSalesData() {
   return response.data.values || [];
 }
 
-module.exports = { getSalesData };
+async function getProductionData() {
+  const client = await auth.getClient();
+  const response = await sheets.spreadsheets.values.get({
+    auth: client,
+    spreadsheetId: '1soZRvVb2qGZDgkm5NHxukOnufGLVAmIAisOQSaknlwE',
+    range: 'Daily Production Report!A:P',
+  });
+  return response.data.values || [];
+}
+
+module.exports = { getSalesData, getProductionData };

@@ -783,3 +783,311 @@ main {
 main.expanded {
   margin-right: 40px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DASHBOARD NAVIGATION BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dashboard-nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #1a1f2e;
+  border-bottom: 1px solid #2d3448;
+  padding: 0 24px;
+}
+
+.nav-link {
+  display: inline-block;
+  padding: 14px 22px;
+  color: #8892a4;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #e2e8f0;
+}
+
+.nav-link.active {
+  color: #60a5fa;
+  border-bottom-color: #3b82f6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCTION DASHBOARD — LOADING OVERLAY
+   ═══════════════════════════════════════════════════════════════════════════ */
+#loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 26, 0.95);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  color: #e2e8f0;
+  font-size: 1.1rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCTION KPI GRID — 8 CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.prod-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 24px 24px 0;
+}
+
+@media (max-width: 1200px) {
+  .prod-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .prod-kpi-grid { grid-template-columns: 1fr; }
+}
+
+.prod-kpi-card {
+  background: #1a1f2e;
+  border-radius: 10px;
+  padding: 20px 22px;
+  border-top: 4px solid #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prod-kpi-card .kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8892a4;
+  font-weight: 600;
+}
+
+.prod-kpi-card .kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1;
+}
+
+.prod-kpi-card .kpi-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Accent colour variants */
+.kpi-blue   { border-top-color: #3b82f6; }
+.kpi-orange { border-top-color: #f97316; }
+.kpi-green  { border-top-color: #10b981; }
+.kpi-purple { border-top-color: #8b5cf6; }
+.kpi-cyan   { border-top-color: #06b6d4; }
+.kpi-amber  { border-top-color: #f59e0b; }
+.kpi-gray   { border-top-color: #6b7280; }
+
+/* Stock movement overrides */
+.prod-kpi-card.kpi-stock-positive {
+  border-top-color: #10b981;
+}
+.prod-kpi-card.kpi-stock-positive .kpi-value {
+  color: #34d399;
+}
+.prod-kpi-card.kpi-stock-negative {
+  border-top-color: #ef4444;
+}
+.prod-kpi-card.kpi-stock-negative .kpi-value {
+  color: #f87171;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXECUTIVE SUMMARY CARD
+   ═══════════════════════════════════════════════════════════════════════════ */
+.exec-summary-card {
+  background: #1a1f2e;
+  border-radius: 10px;
+  margin: 20px 24px 0;
+  overflow: hidden;
+}
+
+.exec-summary-card .card-header {
+  background: #0f1117;
+  padding: 14px 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #60a5fa;
+}
+
+.exec-summary-card .card-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exec-line {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.exec-warning {
+  color: #fbbf24;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MONTHLY BREAKDOWN TABLE CARD
+   ═══════════════════════════════════════════════════════════════════════════ */
+.monthly-breakdown-card {
+  background: #1a1f2e;
+  border-radius: 10px;
+  margin: 20px 24px 0;
+  overflow: hidden;
+}
+
+.monthly-breakdown-card .card-header {
+  background: #0f1117;
+  padding: 14px 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #60a5fa;
+}
+
+.monthly-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.monthly-table th {
+  background: #141720;
+  padding: 10px 18px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.monthly-table td {
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  border-top: 1px solid #2d3448;
+}
+
+.monthly-table tbody tr:hover td {
+  background: #1e2538;
+}
+
+.monthly-table tfoot td {
+  font-weight: 700;
+  color: #e2e8f0;
+  border-top: 2px solid #3b82f6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCTION CHARTS GRID
+   ═══════════════════════════════════════════════════════════════════════════ */
+.prod-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+@media (max-width: 900px) {
+  .prod-charts-grid { grid-template-columns: 1fr; }
+}
+
+.prod-chart-card {
+  background: #1a1f2e;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prod-chart-card .chart-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8892a4;
+}
+
+.prod-chart-card canvas {
+  height: 320px !important;
+  max-height: 320px !important;
+}
+
+/* Full-width chart — spans both columns */
+.prod-chart-wide {
+  grid-column: 1 / -1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCTION ANOMALY SIDEBAR
+   Uses existing .ai-sidebar / .ai-sidebar.closed from sales dashboard.
+   Section headings inside sidebar:
+   ═══════════════════════════════════════════════════════════════════════════ */
+#prodSidebar {
+  background: #1a1f2e;
+}
+
+#prodSidebar .sidebar-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #60a5fa;
+  padding: 14px 16px 4px;
+}
+
+#prodSidebar .anomaly-item {
+  padding: 8px 16px;
+  border-bottom: 1px solid #2d3448;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+#prodSidebar .anomaly-item .anomaly-date {
+  font-weight: 600;
+  color: #e2e8f0;
+  display: block;
+  margin-bottom: 2px;
+}
+
+#prodSidebar .anomaly-item .anomaly-detail {
+  color: #8892a4;
+}
+
+#prodSidebar .anomaly-highlight {
+  background: #141720;
+  border-left: 3px solid #f59e0b;
+}
+
+#prodSidebar .anomaly-gap {
+  border-left: 3px solid #ef4444;
+}
+
+#prodSidebar .anomaly-dist {
+  border-left: 3px solid #8b5cf6;
+}
+
+#prodSidebar .section-empty {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  color: #4b5563;
+  font-style: italic;
+}
