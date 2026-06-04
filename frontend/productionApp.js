@@ -365,7 +365,7 @@ function populateSidebar(anomalies) {
 
 // ── Main loader ──────────────────────────────────────────────────────────────
 async function loadProductionDashboard() {
-  const overlay = document.getElementById('loadingOverlay');
+  const overlay = document.getElementById('productionLoadingOverlay');
   try {
     const response = await fetch('/production-analytics');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

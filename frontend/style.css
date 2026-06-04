@@ -820,7 +820,7 @@ main.expanded {
 /* ═══════════════════════════════════════════════════════════════════════════
    PRODUCTION DASHBOARD — LOADING OVERLAY
    ═══════════════════════════════════════════════════════════════════════════ */
-#loadingOverlay {
+#productionLoadingOverlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 17, 26, 0.95);
