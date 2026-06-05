@@ -66,16 +66,33 @@ function populateKPIs(kpis) {
     (v) => Math.round(v).toLocaleString() + ' kg'
   );
 
-  // Net stock movement — animated with sign prefix
+  // Net stock movement — arrow + sign + value + Units
   animateProdCounter(
     document.getElementById('kpiNetStock'),
     Math.abs(netStockMovement),
     (v, ip) => {
-      const n   = Math.round(v);
-      const sign = netStockMovement >= 0 ? '+' : '−';
-      return ip ? n.toLocaleString() : sign + n.toLocaleString();
+      const n = Math.round(v);
+      if (ip) return n.toLocaleString();
+      const arrow = netStockMovement >= 0 ? '▲' : '▼';
+      const sign  = netStockMovement >= 0 ? '+' : '−';
+      return arrow + ' ' + sign + n.toLocaleString() + ' Units';
     }
   );
+
+  // Kg per Bag — computed client-side from existing KPI fields
+  const kgPerBag = totalOutput > 0
+    ? Math.round(totalWeightKg / totalOutput * 100) / 100
+    : null;
+  const kgPerBagEl = document.getElementById('kpiKgPerBag');
+  if (kgPerBagEl) {
+    if (kgPerBag !== null) {
+      animateProdCounter(kgPerBagEl, kgPerBag,
+        (v, ip) => ip ? Math.round(v).toString() : v.toFixed(2)
+      );
+    } else {
+      kgPerBagEl.textContent = 'N/A';
+    }
+  }
 
   // Apply accent class to stock card
   const stockCard = document.getElementById('kpiStockCard');

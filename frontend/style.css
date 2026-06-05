@@ -835,6 +835,22 @@ main.expanded {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCTION PAGE HEADER — scoped to avoid affecting Sales dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+#prodHeader {
+  padding: 10px 0 8px;
+  margin-bottom: 0;
+  text-align: center;
+}
+
+#prodHeader h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PRODUCTION PAGE BACKGROUND
    ═══════════════════════════════════════════════════════════════════════════ */
 #prodMain {
@@ -870,6 +886,12 @@ main.expanded {
   flex-direction: column;
   gap: 6px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.prod-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 .prod-kpi-card .kpi-label {
@@ -901,6 +923,7 @@ main.expanded {
 .kpi-cyan   { border-top-color: #06b6d4; }
 .kpi-amber  { border-top-color: #f59e0b; }
 .kpi-gray   { border-top-color: #6b7280; }
+.kpi-teal   { border-top-color: #14b8a6; }
 
 /* Stock movement overrides */
 .prod-kpi-card.kpi-stock-positive {
