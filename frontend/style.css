@@ -835,6 +835,15 @@ main.expanded {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PRODUCTION PAGE BACKGROUND
+   ═══════════════════════════════════════════════════════════════════════════ */
+#prodMain {
+  background: #f1f5f9;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PRODUCTION KPI GRID — 8 CARDS
    ═══════════════════════════════════════════════════════════════════════════ */
 .prod-kpi-grid {
@@ -853,33 +862,35 @@ main.expanded {
 }
 
 .prod-kpi-card {
-  background: #1a1f2e;
+  background: #ffffff;
   border-radius: 10px;
   padding: 20px 22px;
   border-top: 4px solid #6b7280;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .prod-kpi-card .kpi-label {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #8892a4;
+  color: #6b7280;
   font-weight: 600;
 }
 
 .prod-kpi-card .kpi-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #f1f5f9;
+  letter-spacing: -0.02em;
+  color: #111827;
   line-height: 1;
 }
 
 .prod-kpi-card .kpi-sub {
   font-size: 0.8rem;
-  color: #64748b;
+  color: #9ca3af;
 }
 
 /* Accent colour variants */
@@ -896,33 +907,35 @@ main.expanded {
   border-top-color: #10b981;
 }
 .prod-kpi-card.kpi-stock-positive .kpi-value {
-  color: #34d399;
+  color: #059669;
 }
 .prod-kpi-card.kpi-stock-negative {
   border-top-color: #ef4444;
 }
 .prod-kpi-card.kpi-stock-negative .kpi-value {
-  color: #f87171;
+  color: #dc2626;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EXECUTIVE SUMMARY CARD
    ═══════════════════════════════════════════════════════════════════════════ */
 .exec-summary-card {
-  background: #1a1f2e;
+  background: #ffffff;
   border-radius: 10px;
   margin: 20px 24px 0;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .exec-summary-card .card-header {
-  background: #0f1117;
+  background: #f8fafc;
   padding: 14px 20px;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #60a5fa;
+  color: #2563eb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .exec-summary-card .card-body {
@@ -934,32 +947,38 @@ main.expanded {
 
 .exec-line {
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: #374151;
   line-height: 1.5;
 }
 
 .exec-warning {
-  color: #fbbf24;
+  color: #b45309;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  padding: 8px 12px;
+  border-radius: 6px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MONTHLY BREAKDOWN TABLE CARD
    ═══════════════════════════════════════════════════════════════════════════ */
 .monthly-breakdown-card {
-  background: #1a1f2e;
+  background: #ffffff;
   border-radius: 10px;
   margin: 20px 24px 0;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .monthly-breakdown-card .card-header {
-  background: #0f1117;
+  background: #f8fafc;
   padding: 14px 20px;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #60a5fa;
+  color: #2563eb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .monthly-table {
@@ -968,30 +987,30 @@ main.expanded {
 }
 
 .monthly-table th {
-  background: #141720;
+  background: #f9fafb;
   padding: 10px 18px;
   text-align: left;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: #6b7280;
 }
 
 .monthly-table td {
   padding: 10px 18px;
   font-size: 0.875rem;
-  color: #cbd5e1;
-  border-top: 1px solid #2d3448;
+  color: #374151;
+  border-top: 1px solid #f3f4f6;
 }
 
 .monthly-table tbody tr:hover td {
-  background: #1e2538;
+  background: #f8fafc;
 }
 
 .monthly-table tfoot td {
   font-weight: 700;
-  color: #e2e8f0;
+  color: #111827;
   border-top: 2px solid #3b82f6;
 }
 
@@ -1010,12 +1029,13 @@ main.expanded {
 }
 
 .prod-chart-card {
-  background: #1a1f2e;
+  background: #ffffff;
   border-radius: 10px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .prod-chart-card .chart-title {
@@ -1023,7 +1043,7 @@ main.expanded {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #8892a4;
+  color: #6b7280;
 }
 
 .prod-chart-card canvas {
@@ -1042,7 +1062,7 @@ main.expanded {
    Section headings inside sidebar:
    ═══════════════════════════════════════════════════════════════════════════ */
 #prodSidebar {
-  background: #1a1f2e;
+  background: #ffffff;
 }
 
 #prodSidebar .sidebar-section-title {
@@ -1050,30 +1070,30 @@ main.expanded {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #60a5fa;
+  color: #2563eb;
   padding: 14px 16px 4px;
 }
 
 #prodSidebar .anomaly-item {
   padding: 8px 16px;
-  border-bottom: 1px solid #2d3448;
+  border-bottom: 1px solid #f3f4f6;
   font-size: 0.82rem;
-  color: #cbd5e1;
+  color: #374151;
 }
 
 #prodSidebar .anomaly-item .anomaly-date {
   font-weight: 600;
-  color: #e2e8f0;
+  color: #111827;
   display: block;
   margin-bottom: 2px;
 }
 
 #prodSidebar .anomaly-item .anomaly-detail {
-  color: #8892a4;
+  color: #6b7280;
 }
 
 #prodSidebar .anomaly-highlight {
-  background: #141720;
+  background: #fffbeb;
   border-left: 3px solid #f59e0b;
 }
 
@@ -1088,6 +1108,6 @@ main.expanded {
 #prodSidebar .section-empty {
   padding: 8px 16px;
   font-size: 0.8rem;
-  color: #4b5563;
+  color: #9ca3af;
   font-style: italic;
 }
