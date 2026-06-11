@@ -50,6 +50,12 @@
       <div class="sidebar-section-title">Distribution Anomalies</div>
       <div id="distList"></div>
     </div>
+
+    <!-- Negative stock periods -->
+    <div class="inventory-alerts" id="negativeStockSection" style="display:none;">
+      <div class="sidebar-section-title">Negative Stock Periods</div>
+      <div id="negativeStockList"></div>
+    </div>
   </aside>
 
   <main id="prodMain">
@@ -111,6 +117,12 @@
         <span class="kpi-sub">Raw material per bag</span>
       </div>
 
+      <div class="prod-kpi-card">
+        <span class="kpi-label">Inventory Trend</span>
+        <span class="kpi-value" id="kpiInventoryTrend">—</span>
+        <span class="kpi-sub">Production vs distribution</span>
+      </div>
+
     </div>
 
     <!-- Executive Summary -->
@@ -160,6 +172,12 @@
       <div class="prod-chart-card">
         <div class="chart-title">Average Batch Temperature (&deg;C)</div>
         <canvas id="chartTemp"></canvas>
+      </div>
+
+      <!-- Inventory Balance Over Time -->
+      <div class="prod-chart-card prod-chart-wide">
+        <div class="chart-title">Inventory Balance Over Time</div>
+        <canvas id="chartInventoryBalance"></canvas>
       </div>
 
     </div>

@@ -180,6 +180,11 @@ function processProduction(rows) {
   // ── Anomaly engine ───────────────────────────────────────────────────────
   const anomalies = detectAnomalies(parsed, productionRows, { totalGivenOut });
 
+  // ── Inventory calculations ──────────────────────────────────────────────
+  const inventoryBalance = buildInventoryBalance(parsed);
+  const inventoryTrend = calculateInventoryTrend(inventoryBalance);
+  const negativeStockPeriods = detectNegativeStockPeriods(inventoryBalance);
+
   // ── Executive summary ────────────────────────────────────────────────────
   const executiveSummary = buildExecutiveSummary({
     totalProductionDays,
@@ -205,10 +210,14 @@ function processProduction(rows) {
       avgTemp,
       totalWeightKg,
       netStockMovement,
+      inventoryTrend,
     },
     monthlyBreakdown,
-    charts: { outputTrend, givenOutTrend, tempTrend },
-    anomalies,
+    charts: { outputTrend, givenOutTrend, tempTrend, inventoryBalance },
+    anomalies: {
+      ...anomalies,
+      inventoryAnomalies: { negativeStockPeriods },
+    },
     executiveSummary,
   };
 }
@@ -394,19 +403,114 @@ function formatMonth(yyyyMM) {
   return months[parseInt(mm, 10) - 1] + ' ' + yyyyMM.slice(0, 4);
 }
 
+// ─── Inventory Calculations ──────────────────────────────────────────────────
+
+function buildInventoryBalance(parsed) {
+  let cumulative = 0;
+  const result = [];
+
+  for (const row of parsed) {
+    cumulative += (row.totalOutput - row.givenOut);
+    result.push({
+      date: row.dateStr,
+      cumulative: cumulative,
+      produced: row.totalOutput,
+      distributed: row.givenOut,
+    });
+  }
+
+  return result;
+}
+
+function calculateInventoryTrend(inventoryBalance) {
+  if (inventoryBalance.length === 0) {
+    return 'stable';
+  }
+
+  // Compare first third, middle third, last third to determine trend
+  // If recent cumulative > older cumulative → improving
+  // If recent cumulative < older cumulative → declining
+  // If relatively flat → stable
+
+  const len = inventoryBalance.length;
+  const firstVal = inventoryBalance[0].cumulative;
+  const midVal = inventoryBalance[Math.floor(len / 2)].cumulative;
+  const lastVal = inventoryBalance[len - 1].cumulative;
+
+  // Calculate trend slopes
+  // Improving: cumulative increasing overall
+  // Declining: cumulative decreasing overall
+  // Stable: relatively flat
+
+  const overallChange = lastVal - firstVal;
+  const threshold = Math.abs(firstVal) * 0.1; // 10% of starting absolute value
+
+  if (overallChange > threshold) {
+    return 'improving';
+  } else if (overallChange < -threshold) {
+    return 'declining';
+  } else {
+    return 'stable';
+  }
+}
+
+function detectNegativeStockPeriods(inventoryBalance) {
+  const periods = [];
+  let periodStart = null;
+  let minStock = 0;
+
+  for (let i = 0; i < inventoryBalance.length; i++) {
+    const bal = inventoryBalance[i];
+
+    if (bal.cumulative < 0) {
+      if (periodStart === null) {
+        periodStart = i;
+        minStock = bal.cumulative;
+      } else {
+        minStock = Math.min(minStock, bal.cumulative);
+      }
+    } else {
+      if (periodStart !== null) {
+        periods.push({
+          startDate: inventoryBalance[periodStart].date,
+          endDate: inventoryBalance[i - 1].date,
+          minStock: minStock,
+          days: i - periodStart,
+        });
+        periodStart = null;
+        minStock = 0;
+      }
+    }
+  }
+
+  // Trailing negative period (ends at last data point)
+  if (periodStart !== null) {
+    periods.push({
+      startDate: inventoryBalance[periodStart].date,
+      endDate: inventoryBalance[inventoryBalance.length - 1].date,
+      minStock: minStock,
+      days: inventoryBalance.length - periodStart,
+    });
+  }
+
+  return periods;
+}
+
 function emptyResult() {
   return {
     kpis: {
       totalProductionDays: 0, totalBatches: 0, totalOutput: 0,
       totalGivenOut: 0, avgOutputPerBatch: 0, avgTemp: null,
       totalWeightKg: 0, netStockMovement: 0,
+      inventoryTrend: 'stable',
     },
     monthlyBreakdown: [],
-    charts: { outputTrend: [], givenOutTrend: [], tempTrend: [] },
+    charts: { outputTrend: [], givenOutTrend: [], tempTrend: [], inventoryBalance: [] },
     anomalies: {
       incompleteProductionDays: [], productionGaps: [],
       distributionAnomalies: [], missingTempDays: [],
       highlights: { peakDay: null, longestStreak: null },
+      inventoryAnomalies: { negativeStockPeriods: [] },
     },
     executiveSummary: ['No production data available.'],
   };

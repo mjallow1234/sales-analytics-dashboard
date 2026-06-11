@@ -11,6 +11,7 @@ Chart.defaults.plugins.legend.display = false;
 let outputChart   = null;
 let givenOutChart = null;
 let tempChart     = null;
+let inventoryChart = null;
 
 // ── Utility: animate numeric counter ────────────────────────────────────────
 function animateProdCounter(el, finalValue, formatter) {
@@ -102,6 +103,28 @@ function populateKPIs(kpis) {
   } else {
     stockCard.classList.add('kpi-stock-negative');
     stockCard.classList.remove('kpi-stock-positive');
+  }
+}
+
+// ── Inventory Trend KPI ──────────────────────────────────────────────────────
+function populateInventoryTrend(inventoryTrend) {
+  const el = document.getElementById('kpiInventoryTrend');
+  if (!el) return;
+
+  const trendConfig = {
+    improving: { emoji: '🟢', label: 'Improving', class: 'trend-improving' },
+    stable: { emoji: '🟡', label: 'Stable', class: 'trend-stable' },
+    declining: { emoji: '🔴', label: 'Declining', class: 'trend-declining' },
+  };
+
+  const config = trendConfig[inventoryTrend] || trendConfig.stable;
+  el.textContent = `${config.emoji} ${config.label}`;
+  
+  // Apply trend class to card for additional styling if needed
+  const card = el.closest('.prod-kpi-card');
+  if (card) {
+    card.classList.remove('trend-improving', 'trend-stable', 'trend-declining');
+    card.classList.add(config.class);
   }
 }
 
@@ -380,6 +403,100 @@ function populateSidebar(anomalies) {
   }
 }
 
+// ── Inventory Balance Chart ──────────────────────────────────────────────────
+function renderInventoryBalance(inventoryBalance) {
+  const canvas = document.getElementById('chartInventoryBalance');
+  if (!canvas) return;
+
+  if (inventoryChart) { inventoryChart.destroy(); inventoryChart = null; }
+
+  const labels = inventoryBalance.map(d => d.date);
+  const data = inventoryBalance.map(d => d.cumulative);
+
+  // Determine if mostly negative to set colors
+  const negativeCount = data.filter(v => v < 0).length;
+  const isNegativeOverall = negativeCount > data.length / 2;
+
+  const borderColor = isNegativeOverall ? '#ef4444' : '#10b981';
+  const backgroundColor = isNegativeOverall
+    ? 'rgba(239, 68, 68, 0.1)'
+    : 'rgba(16, 185, 129, 0.1)';
+
+  inventoryChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Cumulative Balance',
+        data,
+        borderColor,
+        backgroundColor,
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: borderColor,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Units' },
+          grid: { drawBorder: false },
+        },
+        x: {
+          ticks: { maxTicksLimit: 20, maxRotation: 45 },
+          grid: { display: false },
+        },
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const row = inventoryBalance[idx];
+              return [
+                `Produced: ${row.produced} units`,
+                `Distributed: ${row.distributed} units`,
+                `Cumulative: ${row.cumulative} units`,
+              ];
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+// ── Negative Stock Periods Alerts ────────────────────────────────────────────
+function populateNegativeStockAlerts(negativeStockPeriods) {
+  const container = document.getElementById('negativeStockList');
+  const section = document.getElementById('negativeStockSection');
+
+  if (!container || !section) return;
+
+  if (negativeStockPeriods.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  container.innerHTML = '';
+  section.style.display = 'block';
+
+  negativeStockPeriods.forEach(period => {
+    const div = document.createElement('div');
+    div.className = 'anomaly-item anomaly-negative-stock';
+    div.innerHTML = `
+      <span class="anomaly-date">⚠ ${period.days} days (min: −${Math.abs(period.minStock)} units)</span>
+      <span class="anomaly-detail">${period.startDate} → ${period.endDate}</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
 // ── Main loader ──────────────────────────────────────────────────────────────
 async function loadProductionDashboard() {
   const overlay = document.getElementById('productionLoadingOverlay');
@@ -389,14 +506,17 @@ async function loadProductionDashboard() {
     const data = await response.json();
 
     populateKPIs(data.kpis);
+    populateInventoryTrend(data.kpis.inventoryTrend);
     populateExecutiveSummary(data.executiveSummary);
     populateMonthlyTable(data.monthlyBreakdown);
 
     renderOutputTrend(data.charts.outputTrend);
     renderGivenOutChart(data.charts.givenOutTrend);
     renderTempTrend(data.charts.tempTrend);
+    renderInventoryBalance(data.charts.inventoryBalance);
 
     populateSidebar(data.anomalies);
+    populateNegativeStockAlerts(data.anomalies.inventoryAnomalies.negativeStockPeriods);
   } catch (err) {
     console.error('Failed to load production analytics:', err);
     const body = document.getElementById('execSummaryBody');

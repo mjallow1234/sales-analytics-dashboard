@@ -1134,3 +1134,33 @@ main.expanded {
   color: #9ca3af;
   font-style: italic;
 }
+
+/* ─── Inventory Trend Styling ─────────────────────────────────────────────── */
+
+.prod-kpi-card.trend-improving {
+  border-top: 3px solid #10b981;
+}
+
+.prod-kpi-card.trend-stable {
+  border-top: 3px solid #f59e0b;
+}
+
+.prod-kpi-card.trend-declining {
+  border-top: 3px solid #ef4444;
+}
+
+/* ─── Inventory Alerts Styling ──────────────────────────────────────────────── */
+
+#prodSidebar .inventory-alerts {
+  display: none;
+}
+
+#prodSidebar .anomaly-negative-stock {
+  background-color: #fef2f2;
+  border-left: 3px solid #dc2626;
+  color: #7f1d1d;
+}
+
+#prodSidebar .anomaly-negative-stock .anomaly-date {
+  color: #991b1b;
+}
