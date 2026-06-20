@@ -347,7 +347,7 @@ async function loadDashboard(filters = {}) {
     const salesOverTimeRaw = data.salesOverTime || {};
 
     const datasets = {
-      revenueByAgent: { labels: agentLabels, values: agentValues },
+      revenueByAffiliate: { labels: agentLabels, values: agentValues },
       topCustomers: { labels: customerLabels, values: customerValues },
       salesByProduct: { labels: productLabels, values: productValues },
       salesOverTime: salesOverTimeRaw,
@@ -424,13 +424,13 @@ function generateSmartInsights(data) {
     insights.push('\ud83d\udcc8 Revenue is up compared to last week');
   }
 
-  // Top agent share
-  const agentEntries = Object.entries(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {}).sort((a, b) => b[1] - a[1]);
-  const totalAgentRevenue = agentEntries.reduce((sum, [, v]) => sum + v, 0);
-  if (agentEntries.length > 0 && totalAgentRevenue > 0) {
-    const topAgentShare = agentEntries[0][1] / totalAgentRevenue;
-    if (topAgentShare > 0.5) {
-      insights.push('\ud83d\udd25 One agent dominates over 50% of sales');
+  // Top affiliate share
+  const affiliateEntries = Object.entries(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {}).sort((a, b) => b[1] - a[1]);
+  const totalAffiliateRevenue = affiliateEntries.reduce((sum, [, v]) => sum + v, 0);
+  if (affiliateEntries.length > 0 && totalAffiliateRevenue > 0) {
+    const topAffiliateShare = affiliateEntries[0][1] / totalAffiliateRevenue;
+    if (topAffiliateShare > 0.5) {
+      insights.push('\ud83d\udd25 One affiliate dominates over 50% of sales');
     }
   }
 
@@ -556,7 +556,7 @@ async function askAI(question, data) {
     last3DaysSales: data.last3DaysSales,
     last7DaysRevenue: data.last7DaysRevenue,
     last7DaysSales: data.last7DaysSales,
-    topAgent: data.topAgent,
+    topAffiliate: data.topAffiliate,
     topLocation: data.topLocation,
     anomalies: data.anomalies,
     trends: data.trends
@@ -661,12 +661,12 @@ function updateTopCustomers(data) {
 }
 
 function populateAgentDropdown(data) {
-  const agentLabels = Object.keys(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {});
+  const affiliateLabels = Object.keys(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {});
   const agentSelect = document.getElementById('agentFilter');
   if (!agentSelect) return;
   const selected = agentSelect.value;
   agentSelect.innerHTML = '<option value="">All Affiliates</option>';
-  agentLabels.forEach(a => {
+  affiliateLabels.forEach(a => {
     const opt = document.createElement('option');
     opt.value = a;
     opt.textContent = a;
@@ -717,9 +717,11 @@ function renderCharts(datasets) {
   const agentCanvas = document.getElementById('chart-agent');
   if (!agentCanvas) return;
   const ctxAgent = agentCanvas.getContext('2d');
+  const affiliateLabels = datasets.revenueByAffiliate.labels;
+  const affiliateValues = datasets.revenueByAffiliate.values;
   if (revenueChart) {
-    revenueChart.data.labels = agentLabels;
-    revenueChart.data.datasets[0].data = agentValues;
+    revenueChart.data.labels = affiliateLabels;
+    revenueChart.data.datasets[0].data = affiliateValues;
     revenueChart.update();
     const tile = document.querySelector('[data-tile="revenue-agent"]');
     if (tile) applyStoredSettings(revenueChart, tile);
@@ -727,10 +729,10 @@ function renderCharts(datasets) {
     revenueChart = new Chart(ctxAgent, {
       type: 'bar',
       data: {
-        labels: agentLabels,
+        labels: affiliateLabels,
         datasets: [{
           label: 'Revenue',
-          data: agentValues,
+          data: affiliateValues,
           backgroundColor: chartPalette,
         }],
       },
@@ -743,11 +745,11 @@ function renderCharts(datasets) {
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;
-          const agent = agentLabels[index];
-          if (chartFilters.agent === agent) {
+          const affiliate = affiliateLabels[index];
+          if (chartFilters.agent === affiliate) {
             chartFilters.agent = null;
           } else {
-            chartFilters.agent = agent;
+            chartFilters.agent = affiliate;
           }
           loadDashboard();
         }
