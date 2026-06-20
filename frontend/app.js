@@ -1478,6 +1478,7 @@ let filteredCustomersData = [];
 let currentCustomerPage = 1;
 const customersPerPage = 50;
 let currentCustomerSort = { field: 'rank', order: 'asc' };
+let customerIntelligenceInitialized = false;
 
 function populateCustomerIntelligence(data) {
   if (!data.customerIntelligence) {
@@ -1496,10 +1497,13 @@ function populateCustomerIntelligence(data) {
   // Render customer table
   renderCustomerLeaderboard();
   
-  // Setup event listeners
-  setupCustomerSearch();
-  setupCustomerSort();
-  setupCustomerPagination();
+  // Setup event listeners (only once, on first call)
+  if (!customerIntelligenceInitialized) {
+    setupCustomerSearch();
+    setupCustomerSort();
+    setupCustomerPagination();
+    customerIntelligenceInitialized = true;
+  }
 }
 
 function populateCustomerKPIs(kpis) {
