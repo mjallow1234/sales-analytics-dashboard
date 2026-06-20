@@ -1602,7 +1602,7 @@ function updateCustomerPaginationInfo() {
   if (info) {
     const startIdx = (currentCustomerPage - 1) * customersPerPage + 1;
     const endIdx = Math.min(currentCustomerPage * customersPerPage, filteredCustomersData.length);
-    info.textContent = \Showing \-\ of \\;
+    info.textContent = `Showing ${startIdx}-${endIdx} of ${filteredCustomersData.length}`;
   }
 
   const prevBtn = document.getElementById('customerPrevBtn');
