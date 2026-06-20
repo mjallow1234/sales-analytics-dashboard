@@ -101,6 +101,7 @@ app.get('/analytics', async (req, res) => {
 });
 
 // TEMPORARY DIAGNOSTIC ENDPOINT - For affiliate migration validation
+// Run on production VPS where Google credentials are available
 app.get('/diagnostic', async (req, res) => {
   try {
     const rows = await getSalesData();
@@ -117,7 +118,7 @@ app.get('/diagnostic', async (req, res) => {
       if (affiliateIds.size >= 5) return;
     });
     
-    // Get first 5 affiliate mappings
+    // Get first 5 affiliate mappings from cache
     const firstFiveMappings = {};
     const cache = cacheStatus.cache || {};
     let count = 0;
@@ -127,12 +128,13 @@ app.get('/diagnostic', async (req, res) => {
       count++;
     }
     
+    // Build response with diagnostic data
     res.json({
       diagnostic: {
         timestamp: new Date().toISOString(),
-        sheetHeaders: rows[0] || [],
+        sheetHeaders: (rows[0] || []).map(h => h || ''),
         first5AffiliateIds: Array.from(affiliateIds),
-        affiliateCacheSize: cacheStatus.affiliateCount,
+        affiliateCacheSize: cacheStatus.affiliateCount || 0,
         first5AffiliateMappings: firstFiveMappings,
         revenueByAffiliateKeys: Object.keys(analytics.revenueByAffiliate || {}).slice(0, 10),
         revenueByAffiliateSample: (() => {
@@ -155,7 +157,8 @@ app.get('/diagnostic', async (req, res) => {
     console.error('Diagnostic endpoint error:', error);
     res.status(500).json({
       error: 'Diagnostic failed',
-      message: error.message
+      message: error.message,
+      stack: error.stack
     });
   }
 });
