@@ -37,6 +37,7 @@ function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, 
 
   Object.entries(allTimeStats).forEach(([phone, allStats]) => {
     const filtered = filteredStats[phone] || { purchases: 0, spent: 0, lastPurchaseDate: null };
+    const customerPurchases = purchaseHistory[phone] || [];
     
     // All-time calculations
     const daysSinceLastPurchase = calculateDaysSince(allStats.lastPurchaseDate, currentDate);
