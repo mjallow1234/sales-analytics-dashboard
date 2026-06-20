@@ -100,6 +100,66 @@ app.get('/analytics', async (req, res) => {
   }
 });
 
+// TEMPORARY DIAGNOSTIC ENDPOINT - For affiliate migration validation
+app.get('/diagnostic', async (req, res) => {
+  try {
+    const rows = await getSalesData();
+    const analytics = processSales(rows);
+    const cacheStatus = getCacheStatus();
+    
+    // Get first 5 affiliate IDs from the data
+    const affiliateIds = new Set();
+    rows.slice(1, 50).forEach(row => {
+      const affiliateIdIdx = rows[0].indexOf('Affiliate ID');
+      if (affiliateIdIdx >= 0 && row[affiliateIdIdx]) {
+        affiliateIds.add(row[affiliateIdIdx]);
+      }
+      if (affiliateIds.size >= 5) return;
+    });
+    
+    // Get first 5 affiliate mappings
+    const firstFiveMappings = {};
+    const cache = cacheStatus.cache || {};
+    let count = 0;
+    for (const [id, name] of Object.entries(cache)) {
+      if (count >= 5) break;
+      firstFiveMappings[id] = name;
+      count++;
+    }
+    
+    res.json({
+      diagnostic: {
+        timestamp: new Date().toISOString(),
+        sheetHeaders: rows[0] || [],
+        first5AffiliateIds: Array.from(affiliateIds),
+        affiliateCacheSize: cacheStatus.affiliateCount,
+        first5AffiliateMappings: firstFiveMappings,
+        revenueByAffiliateKeys: Object.keys(analytics.revenueByAffiliate || {}).slice(0, 10),
+        revenueByAffiliateSample: (() => {
+          const sample = {};
+          let count = 0;
+          for (const [id, revenue] of Object.entries(analytics.revenueByAffiliate || {})) {
+            if (count >= 5) break;
+            sample[id] = revenue;
+            count++;
+          }
+          return sample;
+        })(),
+        topAffiliate: analytics.topAffiliate || null,
+        affiliateLeaderboardSample: (analytics.affiliateLeaderboard || []).slice(0, 5),
+        totalRevenueByAffiliate: Object.values(analytics.revenueByAffiliate || {}).reduce((a, b) => a + b, 0),
+        totalAffiliatesInData: Object.keys(analytics.revenueByAffiliate || {}).length
+      }
+    });
+  } catch (error) {
+    console.error('Diagnostic endpoint error:', error);
+    res.status(500).json({
+      error: 'Diagnostic failed',
+      message: error.message
+    });
+  }
+});
+
 app.use(express.json());
 
 function parseQuery(question) {
