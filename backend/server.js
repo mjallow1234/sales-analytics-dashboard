@@ -6,6 +6,7 @@ const cors = require('cors');
 const { getSalesData, getProductionData } = require('./sheetsService');
 const { processSales } = require('./analyticsProcessor');
 const { processProduction } = require('./productionProcessor');
+const { initializeLookup, getAffiliateName, getCacheStatus } = require('./affiliateLookup');
 
 const app = express();
 app.use(cors());
@@ -63,9 +64,20 @@ app.get('/analytics', async (req, res) => {
 
     const totalTime = Date.now() - requestStartTime;
     
+    // Translate affiliate IDs to names for frontend display
+    const revenueByAffiliateWithNames = {};
+    if (analytics.revenueByAffiliate) {
+      Object.entries(analytics.revenueByAffiliate).forEach(([affiliateId, revenue]) => {
+        const affiliateName = getAffiliateName(affiliateId);
+        const displayKey = `${affiliateId} - ${affiliateName}`;
+        revenueByAffiliateWithNames[displayKey] = revenue;
+      });
+    }
+    
     // Add performance metadata
     const response = {
       ...analytics,
+      revenueByAffiliateDisplay: revenueByAffiliateWithNames,
       _meta: {
         uniqueCustomers: Object.keys(analytics.customerIntelligence?.allCustomers?.map(c => c.phone) || []).length || 0,
         sheetsRetrievalMs: sheetsTime,
@@ -129,7 +141,8 @@ app.post('/ai-query', async (req, res) => {
     const last7DaysRevenue = ctx.last7DaysRevenue || 0;
     const last7DaysSales = ctx.last7DaysSales || 0;
     const previous7DaysRevenue = ctx.previous7DaysRevenue || 0;
-    const topAgent = ctx.topAgent || { name: 'N/A', revenue: 0 };
+    const topAffiliateData = ctx.topAffiliate || { affiliateId: 'N/A', revenue: 0 };
+    const topAffiliateName = getAffiliateName(topAffiliateData.affiliateId);
     const topLocation = ctx.topLocation || { name: 'N/A', revenue: 0 };
     const anomalies = ctx.anomalies || [];
     const trends = ctx.trends || [];
@@ -145,9 +158,9 @@ app.post('/ai-query', async (req, res) => {
         });
       }
 
-      if (type === 'agent_dominance') {
+      if (type === 'affiliate_dominance') {
         return res.json({
-          answer: `One agent (${topAgent.name}) is generating over 50% of total revenue (${topAgent.revenue.toLocaleString()} GMD out of ${(ctx.totalRevenue || 0).toLocaleString()} GMD), meaning sales are heavily dependent on a single performer. This creates risk if that agent becomes inactive.`
+          answer: `One affiliate (${topAffiliateName}) is generating over 50% of total revenue (${topAffiliateData.revenue.toLocaleString()} GMD out of ${(ctx.totalRevenue || 0).toLocaleString()} GMD), meaning sales are heavily dependent on a single affiliate. This creates risk if that affiliate becomes inactive.`
         });
       }
 
@@ -199,7 +212,7 @@ app.post('/ai-query', async (req, res) => {
 
     if (parsed.type === 'top' && parsed.metric === 'revenue') {
       return res.json({
-        answer: `${topAgent.name} is your top agent generating ${topAgent.revenue.toLocaleString()} GMD.`
+        answer: `${topAffiliateName} is your top affiliate generating ${topAffiliateData.revenue.toLocaleString()} GMD.`
       });
     }
 
@@ -211,14 +224,14 @@ app.post('/ai-query', async (req, res) => {
 
     if (parsed.type === 'top') {
       return res.json({
-        answer: `${topAgent.name} is your top agent with ${topAgent.revenue.toLocaleString()} GMD in revenue.`
+        answer: `${topAffiliateName} is your top affiliate with ${topAffiliateData.revenue.toLocaleString()} GMD in revenue.`
       });
     }
 
     // Summary / performance
     if (parsed.type === 'summary') {
       return res.json({
-        answer: `You have generated ${(ctx.totalRevenue || 0).toLocaleString()} GMD from ${ctx.totalSales || 0} sales. Top agent is ${topAgent.name} and top location is ${topLocation.name}.`
+        answer: `You have generated ${(ctx.totalRevenue || 0).toLocaleString()} GMD from ${ctx.totalSales || 0} sales. Top affiliate is ${topAffiliateName} and top location is ${topLocation.name}.`
       });
     }
 
@@ -236,7 +249,7 @@ app.post('/ai-query', async (req, res) => {
 
     // Default fallback
     res.json({
-      answer: `You have generated ${(ctx.totalRevenue || 0).toLocaleString()} GMD from ${ctx.totalSales || 0} sales. Top agent is ${topAgent.name} and top location is ${topLocation.name}.`
+      answer: `You have generated ${(ctx.totalRevenue || 0).toLocaleString()} GMD from ${ctx.totalSales || 0} sales. Top affiliate is ${topAffiliateName} and top location is ${topLocation.name}.`
     });
   } catch (error) {
     console.error('AI query error:', error);
@@ -270,6 +283,18 @@ app.get('/production-analytics', async (req, res) => {
 });
 
 const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Analytics server running on port ${PORT}`);
-});
+
+// Initialize affiliate lookup cache on startup
+(async () => {
+  try {
+    await initializeLookup();
+    console.log('[startup] Affiliate directory cache initialized');
+  } catch (error) {
+    console.error('[startup] Failed to initialize affiliate cache:', error);
+    // Continue even if cache fails to load - it will attempt refresh on-demand
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Analytics server running on port ${PORT}`);
+  });
+})();

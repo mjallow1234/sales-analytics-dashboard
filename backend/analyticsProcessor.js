@@ -1,4 +1,5 @@
 // Data processing logic
+const { initializeLookup, getAffiliateName, getCacheStatus } = require('./affiliateLookup');
 
 /**
  * Process sales rows fetched from Google Sheets.
@@ -194,7 +195,8 @@ function processSales(data, filters = {}) {
       totalSales: 0,
       totalRevenue: 0,
       totalCustomers: 0,
-      revenueByAgent: {},
+      revenueByAffiliate: {},
+      affiliateLeaderboard: [],
       customerIntelligence: {
         kpis: {
           totalCustomers: 0,
@@ -219,6 +221,7 @@ function processSales(data, filters = {}) {
   const productIdx = headers.indexOf('Product');
   const quantityIdx = headers.indexOf('Quantity');
   const locationIdx = headers.indexOf('Address');
+  const affiliateIdIdx = headers.indexOf('Affiliate ID');
 
   const rows = data.slice(1); // skip header
   console.log('Rows before filter:', rows.length);
@@ -296,7 +299,7 @@ function processSales(data, filters = {}) {
   });
 
   // ===== SECOND PASS: FILTERED-PERIOD METRICS (With filters) =====
-  const revenueByAgent = {};
+  const revenueByAffiliate = {};
   const phones = new Set();
 
   let totalSales = 0;
@@ -359,16 +362,13 @@ function processSales(data, filters = {}) {
         if (rowTime > endTime) return;
       }
     }
-    if (normalizedAgent) {
-      const rowAgent = agentIdx >= 0 ? normalizeAgentName(row[agentIdx]) : '';
-      if (rowAgent !== normalizedAgent) return;
-    }
+    // Note: agent filter deprecated in favor of affiliate ID-based analytics
+    // If needed, can be re-implemented with affiliateId filtering
 
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
     const name = nameIdx >= 0 ? row[nameIdx] || 'Unknown' : 'Unknown';
     let amountStr = amountIdx >= 0 ? row[amountIdx] : '';
-    const agentRaw = agentIdx >= 0 ? row[agentIdx] : undefined;
-    const agent = normalizeAgentName(agentRaw);
+    const affiliateId = affiliateIdIdx >= 0 ? (row[affiliateIdIdx] || 'Unknown').toString().trim() : 'Unknown';
 
     // strip currency text (e.g. "900.00 GMD") and parse
     amountStr = String(amountStr).replace(/[^0-9.\-]/g, '');
@@ -396,10 +396,10 @@ function processSales(data, filters = {}) {
     const validAmount = amount > 0 && amount <= 100000;
     if (validAmount) {
       totalRevenue += amount;
-      if (!revenueByAgent[agent]) {
-        revenueByAgent[agent] = 0;
+      if (!revenueByAffiliate[affiliateId]) {
+        revenueByAffiliate[affiliateId] = 0;
       }
-      revenueByAgent[agent] += amount;
+      revenueByAffiliate[affiliateId] += amount;
 
       // accumulate growth periods if date is available
       if (rowDateParsed && filterStartDate) {
@@ -522,9 +522,9 @@ function processSales(data, filters = {}) {
     revenueGrowth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
   }
 
-  // leaderboard of agents by total revenue (descending)
-  const agentLeaderboard = Object.entries(revenueByAgent)
-    .map(([agent, revenue]) => ({ agent, revenue }))
+  // leaderboard of affiliates by total revenue (descending)
+  const affiliateLeaderboard = Object.entries(revenueByAffiliate)
+    .map(([affiliateId, revenue]) => ({ affiliateId, revenue }))
     .sort((a, b) => b.revenue - a.revenue);
 
   // --- Anomaly detection, trends, recommendations ---
@@ -558,9 +558,9 @@ function processSales(data, filters = {}) {
   });
 
   const totalCustomers = phones.size;
-  const topAgentEntry = agentLeaderboard[0];
-  const topAgentName = topAgentEntry ? topAgentEntry.agent : 'N/A';
-  const topAgentRevenue = topAgentEntry ? topAgentEntry.revenue : 0;
+  const topAffiliateEntry = affiliateLeaderboard[0];
+  const topAffiliateId = topAffiliateEntry ? topAffiliateEntry.affiliateId : 'N/A';
+  const topAffiliateRevenue = topAffiliateEntry ? topAffiliateEntry.revenue : 0;
 
   const locEntries = Object.entries(revenueByLocation).sort((a, b) => b[1] - a[1]);
   const topLocationName = locEntries[0] ? locEntries[0][0] : 'N/A';
@@ -574,8 +574,8 @@ function processSales(data, filters = {}) {
   if (previous7DaysSales > 0 && last7DaysSales > previous7DaysSales * 1.3) {
     anomalies.push('\ud83d\ude80 Sales increased sharply this week');
   }
-  if (totalRevenue > 0 && topAgentRevenue / totalRevenue > 0.5) {
-    anomalies.push(`\ud83d\udd25 ${topAgentName} is generating over 50% of total revenue`);
+  if (totalRevenue > 0 && topAffiliateRevenue / totalRevenue > 0.5) {
+    anomalies.push(`\ud83d\udd25 Top affiliate (${topAffiliateId}) is generating over 50% of total revenue`);
   }
 
   // Trends
@@ -601,8 +601,8 @@ function processSales(data, filters = {}) {
   if (previous7DaysRevenue > 0 && last7DaysRevenue < previous7DaysRevenue) {
     recommendations.push('\ud83d\udc49 Increase promotions or agent incentives to boost short-term sales');
   }
-  if (totalRevenue > 0 && topAgentRevenue / totalRevenue > 0.5) {
-    recommendations.push('\ud83d\udc49 Distribute leads more evenly across agents to reduce dependency risk');
+  if (totalRevenue > 0 && topAffiliateRevenue / totalRevenue > 0.5) {
+    recommendations.push('\ud83d\udc49 Distribute leads more evenly across affiliates to reduce dependency risk');
   }
   if (totalCustomers > 0 && repeatCustomers / totalCustomers < 0.2) {
     recommendations.push('\ud83d\udc49 Introduce loyalty offers to improve repeat purchases');
@@ -615,13 +615,13 @@ function processSales(data, filters = {}) {
   // Build Affiliate Intelligence
   const affiliateIntelligence = {};
   rows.forEach((row) => {
-    const agent = agentIdx >= 0 ? normalizeAgentName(row[agentIdx] || 'Unknown') : 'Unknown';
+    const affiliateId = affiliateIdIdx >= 0 ? (row[affiliateIdIdx] || 'Unknown').toString().trim() : 'Unknown';
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
     if (!phone) return;
 
-    if (!affiliateIntelligence[agent]) {
-      affiliateIntelligence[agent] = {
-        name: agent,
+    if (!affiliateIntelligence[affiliateId]) {
+      affiliateIntelligence[affiliateId] = {
+        affiliateId: affiliateId,
         totalCustomers: new Set(),
         totalRevenue: 0,
         totalOrders: 0,
@@ -632,13 +632,13 @@ function processSales(data, filters = {}) {
       };
     }
 
-    affiliateIntelligence[agent].totalCustomers.add(phone);
-    affiliateIntelligence[agent].totalOrders += 1;
+    affiliateIntelligence[affiliateId].totalCustomers.add(phone);
+    affiliateIntelligence[affiliateId].totalOrders += 1;
 
     const amountStr = String(amountIdx >= 0 ? (row[amountIdx] || '') : '').replace(/[^0-9.\-]/g, '');
     const amount = parseFloat(amountStr);
     if (!isNaN(amount) && amount > 0 && amount <= 100000) {
-      affiliateIntelligence[agent].totalRevenue += amount;
+      affiliateIntelligence[affiliateId].totalRevenue += amount;
     }
 
     // Track active & VIP customers per affiliate
@@ -646,13 +646,13 @@ function processSales(data, filters = {}) {
       const customer = customerIntelligence.allCustomers.find(c => c.phone === phone);
       if (customer) {
         if (customer.activityStatus === 'Active') {
-          affiliateIntelligence[agent].activeCustomers.add(phone);
+          affiliateIntelligence[affiliateId].activeCustomers.add(phone);
         }
         if (customer.vipStatus?.isVip) {
-          affiliateIntelligence[agent].vipCustomers += 1;
+          affiliateIntelligence[affiliateId].vipCustomers += 1;
         }
         if (customer.allTimeOrders >= 2) {
-          affiliateIntelligence[agent].repeatCustomers.add(phone);
+          affiliateIntelligence[affiliateId].repeatCustomers.add(phone);
         }
       }
     }
@@ -660,14 +660,14 @@ function processSales(data, filters = {}) {
 
   // Convert Sets to counts and calculate metrics
   const affiliateMetrics = {};
-  Object.entries(affiliateIntelligence).forEach(([agent, data]) => {
+  Object.entries(affiliateIntelligence).forEach(([affiliateId, data]) => {
     const customerCount = data.totalCustomers.size;
     const avgOrderValue = data.totalOrders > 0 ? Math.round(data.totalRevenue / data.totalOrders) : 0;
     const retentionRate = customerCount > 0 ? 
       Math.round((data.repeatCustomers.size / customerCount) * 100) : 0;
 
-    affiliateMetrics[agent] = {
-      name: agent,
+    affiliateMetrics[affiliateId] = {
+      affiliateId: affiliateId,
       totalCustomers: customerCount,
       totalRevenue: data.totalRevenue,
       totalOrders: data.totalOrders,
@@ -683,8 +683,8 @@ function processSales(data, filters = {}) {
     totalSales,
     totalRevenue,
     totalCustomers: phones.size,
-    revenueByAgent,
-    agentLeaderboard,
+    revenueByAffiliate,
+    affiliateLeaderboard,
     repeatCustomers,
     topCustomers,
     purchaseDistribution,
@@ -698,7 +698,7 @@ function processSales(data, filters = {}) {
     last7DaysRevenue,
     last7DaysSales,
     previous7DaysRevenue,
-    topAgent: topAgentEntry ? { name: topAgentName, revenue: topAgentRevenue } : null,
+    topAffiliate: topAffiliateEntry ? { affiliateId: topAffiliateId, revenue: topAffiliateRevenue } : null,
     topLocation: locEntries[0] ? { name: topLocationName, revenue: topLocationRevenue } : null,
     anomalies,
     trends,

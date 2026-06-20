@@ -327,9 +327,22 @@ async function loadDashboard(filters = {}) {
     const customerLabels = (data.topCustomers || []).map(c => c.name);
     const customerValues = (data.topCustomers || []).map(c => c.totalSpent);
 
-    const topAgents = (data.agentLeaderboard || []).slice(0, 10);
-    const agentLabels = topAgents.map(a => a.agent);
-    const agentValues = topAgents.map(a => a.revenue);
+    // Use revenueByAffiliateDisplay if available (has formatted names), otherwise use affiliateLeaderboard
+    let agentLabels, agentValues;
+    if (data.revenueByAffiliateDisplay) {
+      const affiliateEntries = Object.entries(data.revenueByAffiliateDisplay).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      agentLabels = affiliateEntries.map(a => a[0]);
+      agentValues = affiliateEntries.map(a => a[1]);
+    } else if (data.affiliateLeaderboard && data.affiliateLeaderboard.length > 0) {
+      const topAffiliates = data.affiliateLeaderboard.slice(0, 10);
+      agentLabels = topAffiliates.map(a => a.affiliateId);
+      agentValues = topAffiliates.map(a => a.revenue);
+    } else {
+      // Fallback for backward compatibility
+      const topAgents = (data.agentLeaderboard || []).slice(0, 10);
+      agentLabels = topAgents.map(a => a.agent || a.affiliateId);
+      agentValues = topAgents.map(a => a.revenue);
+    }
 
     const salesOverTimeRaw = data.salesOverTime || {};
 
@@ -368,10 +381,10 @@ function generateInsights(data) {
     insights.push(`Average order value is ${Number(avgOrderValue).toLocaleString()} GMD`);
   }
 
-  const topAgent = Object.entries(data.revenueByAgent || {})
+  const topAffiliate = Object.entries(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {})
     .sort((a, b) => b[1] - a[1])[0];
-  if (topAgent) {
-    insights.push(`Top affiliate is ${topAgent[0]} with ${formatFinance(topAgent[1])}`);
+  if (topAffiliate) {
+    insights.push(`Top affiliate is ${topAffiliate[0]} with ${formatFinance(topAffiliate[1])}`);
   }
 
   const topLocation = Object.entries(data.revenueByLocation || {})
@@ -412,7 +425,7 @@ function generateSmartInsights(data) {
   }
 
   // Top agent share
-  const agentEntries = Object.entries(data.revenueByAgent || {}).sort((a, b) => b[1] - a[1]);
+  const agentEntries = Object.entries(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {}).sort((a, b) => b[1] - a[1]);
   const totalAgentRevenue = agentEntries.reduce((sum, [, v]) => sum + v, 0);
   if (agentEntries.length > 0 && totalAgentRevenue > 0) {
     const topAgentShare = agentEntries[0][1] / totalAgentRevenue;
@@ -648,7 +661,7 @@ function updateTopCustomers(data) {
 }
 
 function populateAgentDropdown(data) {
-  const agentLabels = Object.keys(data.revenueByAgent);
+  const agentLabels = Object.keys(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {});
   const agentSelect = document.getElementById('agentFilter');
   if (!agentSelect) return;
   const selected = agentSelect.value;
@@ -700,13 +713,13 @@ function renderCharts(datasets) {
     window.chartInstances["chart-customers"] = topCustomersChart;
   }
 
-  // revenue by agent - bar
+  // revenue by affiliate - bar
   const agentCanvas = document.getElementById('chart-agent');
   if (!agentCanvas) return;
   const ctxAgent = agentCanvas.getContext('2d');
   if (revenueChart) {
-    revenueChart.data.labels = datasets.revenueByAgent.labels;
-    revenueChart.data.datasets[0].data = datasets.revenueByAgent.values;
+    revenueChart.data.labels = agentLabels;
+    revenueChart.data.datasets[0].data = agentValues;
     revenueChart.update();
     const tile = document.querySelector('[data-tile="revenue-agent"]');
     if (tile) applyStoredSettings(revenueChart, tile);
@@ -714,10 +727,10 @@ function renderCharts(datasets) {
     revenueChart = new Chart(ctxAgent, {
       type: 'bar',
       data: {
-        labels: datasets.revenueByAgent.labels,
+        labels: agentLabels,
         datasets: [{
           label: 'Revenue',
-          data: datasets.revenueByAgent.values,
+          data: agentValues,
           backgroundColor: chartPalette,
         }],
       },
@@ -730,7 +743,7 @@ function renderCharts(datasets) {
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;
-          const agent = datasets.revenueByAgent.labels[index];
+          const agent = agentLabels[index];
           if (chartFilters.agent === agent) {
             chartFilters.agent = null;
           } else {
