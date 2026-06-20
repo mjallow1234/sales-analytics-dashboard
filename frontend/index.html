@@ -242,6 +242,79 @@
       </div>
 
     </div>
+
+    <!-- Customer Intelligence Section -->
+    <section id="customerIntelligence" class="customer-intelligence">
+      <h2>Customer Intelligence</h2>
+      
+      <!-- KPI Cards -->
+      <div class="customer-kpi-grid">
+        <div class="customer-kpi-card">
+          <h3>Total Customers</h3>
+          <p class="kpi-value" id="ci-total-customers">0</p>
+        </div>
+        <div class="customer-kpi-card">
+          <h3>Active Customers</h3>
+          <p class="kpi-value" id="ci-active-customers">0</p>
+        </div>
+        <div class="customer-kpi-card">
+          <h3>Repeat Customers</h3>
+          <p class="kpi-value" id="ci-repeat-customers">0</p>
+        </div>
+        <div class="customer-kpi-card">
+          <h3>Loyal Customers</h3>
+          <p class="kpi-value" id="ci-loyal-customers">0</p>
+        </div>
+        <div class="customer-kpi-card">
+          <h3>At Risk Customers</h3>
+          <p class="kpi-value" id="ci-at-risk-customers">0</p>
+        </div>
+        <div class="customer-kpi-card">
+          <h3>Lost Customers</h3>
+          <p class="kpi-value" id="ci-lost-customers">0</p>
+        </div>
+        <div class="customer-kpi-card">
+          <h3>Dormant Revenue</h3>
+          <p class="kpi-value" id="ci-dormant-revenue">0</p>
+        </div>
+      </div>
+
+      <!-- Customer Table Controls -->
+      <div class="customer-controls">
+        <div class="customer-search">
+          <input type="text" id="customerSearch" placeholder="Search by name, phone, or location..." />
+        </div>
+        <div class="customer-pagination">
+          <span id="customerPaginationInfo">Showing 0 of 0</span>
+          <button id="customerPrevBtn" class="pagination-btn">← Previous</button>
+          <button id="customerNextBtn" class="pagination-btn">Next →</button>
+        </div>
+      </div>
+
+      <!-- Customer Table -->
+      <div class="customer-table-container">
+        <table class="customer-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="rank">Rank</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Location</th>
+              <th class="sortable" data-sort="filteredOrders">Orders</th>
+              <th class="sortable" data-sort="filteredRevenue">Revenue</th>
+              <th>Recurring Status</th>
+              <th>Last Purchase</th>
+              <th class="sortable" data-sort="daysSinceLastPurchase">Days Since</th>
+              <th>Activity</th>
+              <th class="sortable" data-sort="customerLifetimeValue">Lifetime Value</th>
+            </tr>
+          </thead>
+          <tbody id="customerTableBody">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 
   <div id="aiSidebar" class="ai-sidebar open">

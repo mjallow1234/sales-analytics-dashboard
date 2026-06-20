@@ -1164,3 +1164,286 @@ main.expanded {
 #prodSidebar .anomaly-negative-stock .anomaly-date {
   color: #991b1b;
 }
+
+/* ---------------------------------------------------------------------------
+   CUSTOMER INTELLIGENCE SECTION
+   --------------------------------------------------------------------------- */
+
+.customer-intelligence {
+  max-width: 1400px;
+  margin: 40px auto 0;
+  padding: 0 24px 40px;
+}
+
+.customer-intelligence h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #111827;
+}
+
+/* KPI Cards Grid */
+.customer-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.customer-kpi-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-top: 4px solid #3b82f6;
+}
+
+.customer-kpi-card:nth-child(2) { border-top-color: #10b981; }
+.customer-kpi-card:nth-child(3) { border-top-color: #f59e0b; }
+.customer-kpi-card:nth-child(4) { border-top-color: #8b5cf6; }
+.customer-kpi-card:nth-child(5) { border-top-color: #f97316; }
+.customer-kpi-card:nth-child(6) { border-top-color: #ef4444; }
+.customer-kpi-card:nth-child(7) { border-top-color: #ec4899; }
+
+.customer-kpi-card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.customer-kpi-card .kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Customer Controls */
+.customer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.customer-search {
+  flex: 1;
+  min-width: 250px;
+}
+
+.customer-search input {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.customer-search input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.customer-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Customer Table */
+.customer-table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.customer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.customer-table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.customer-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.customer-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.customer-table th.sortable:hover {
+  background: #f0f4f8;
+}
+
+.customer-table th.sortable::after {
+  content: ' ?';
+  opacity: 0.4;
+  font-size: 12px;
+}
+
+.customer-table th.sortable.sort-asc::after {
+  content: ' ?';
+  opacity: 1;
+}
+
+.customer-table th.sortable.sort-desc::after {
+  content: ' ?';
+  opacity: 1;
+}
+
+.customer-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+.customer-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.customer-table td {
+  padding: 12px 16px;
+  color: #374151;
+}
+
+.customer-table td:first-child {
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.at-risk {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.lost {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.loyal {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.new {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.status-badge.returning {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* Empty State */
+.customer-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.customer-empty-state p {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .customer-kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .customer-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .customer-search {
+    min-width: 100%;
+  }
+  
+  .customer-pagination {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-intelligence {
+    padding: 0 16px 24px;
+  }
+  
+  .customer-intelligence h2 {
+    font-size: 20px;
+  }
+  
+  .customer-kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  
+  .customer-table {
+    font-size: 12px;
+  }
+  
+  .customer-table th,
+  .customer-table td {
+    padding: 8px 12px;
+  }
+  
+  .customer-table-container {
+    overflow-x: auto;
+  }
+}

@@ -18,6 +18,127 @@ function normalizeAgentName(name) {
     .join(' ');
 }
 
+function calculateDaysSince(lastPurchaseDate, currentDate) {
+  if (!lastPurchaseDate) return Infinity;
+  const last = new Date(lastPurchaseDate);
+  const current = new Date(currentDate);
+  const diffTime = current.getTime() - last.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate) {
+  // Calculate activity status and days since for all-time metrics
+  const allCustomers = [];
+  let atRiskCount = 0;
+  let lostCount = 0;
+  let dormantRevenue = 0;
+  const loyalByAllTime = [];
+
+  Object.entries(allTimeStats).forEach(([phone, allStats]) => {
+    const filtered = filteredStats[phone] || { purchases: 0, spent: 0, lastPurchaseDate: null };
+    
+    // All-time calculations
+    const daysSinceLastPurchase = calculateDaysSince(allStats.lastPurchaseDate, currentDate);
+    let activityStatus = 'Never'; // Default for no purchases
+    if (daysSinceLastPurchase !== Infinity) {
+      if (daysSinceLastPurchase <= 30) {
+        activityStatus = 'Active';
+      } else if (daysSinceLastPurchase > 30 && daysSinceLastPurchase <= 90) {
+        activityStatus = 'At Risk';
+        atRiskCount++;
+      } else if (daysSinceLastPurchase > 90) {
+        activityStatus = 'Lost';
+        lostCount++;
+        dormantRevenue += allStats.spent;
+      }
+    }
+
+    // Filtered period calculations
+    let filteredRecurringStatus = 'New';
+    if (filtered.purchases >= 5) {
+      filteredRecurringStatus = 'Loyal';
+    } else if (filtered.purchases >= 2) {
+      filteredRecurringStatus = 'Returning';
+    }
+
+    const customer = {
+      name: allStats.name,
+      phone,
+      location: allStats.location || 'Unknown',
+      
+      // Filtered period metrics
+      filteredOrders: filtered.purchases,
+      filteredRevenue: filtered.spent,
+      filteredRecurringStatus,
+      
+      // All-time metrics
+      allTimeOrders: allStats.purchases,
+      allTimeRevenue: allStats.spent,
+      allTimeLastPurchaseDate: allStats.lastPurchaseDate,
+      daysSinceLastPurchase: daysSinceLastPurchase === Infinity ? null : daysSinceLastPurchase,
+      activityStatus,
+      
+      // Customer lifetime value
+      customerLifetimeValue: allStats.spent
+    };
+
+    allCustomers.push(customer);
+
+    // Track loyal customers for summary
+    if (allStats.purchases >= 5) {
+      loyalByAllTime.push({
+        name: allStats.name,
+        phone,
+        allTimeOrders: allStats.purchases,
+        allTimeRevenue: allStats.spent
+      });
+    }
+  });
+
+  // Sort for rankings and summaries
+  allCustomers.sort((a, b) => b.filteredRevenue - a.filteredRevenue);
+  loyalByAllTime.sort((a, b) => b.allTimeRevenue - a.allTimeRevenue);
+  const topLoyalCustomers = loyalByAllTime.slice(0, 5);
+
+  // Add rank to all customers
+  allCustomers.forEach((customer, index) => {
+    customer.rank = index + 1;
+  });
+
+  // Calculate KPIs
+  const totalCustomersFiltered = Object.keys(filteredStats).length;
+  let repeatCustomersFiltered = 0;
+  let loyalCustomersFiltered = 0;
+  let activeCustomersCount = 0;
+
+  Object.values(filteredStats).forEach(stats => {
+    if (stats.purchases > 1) repeatCustomersFiltered++;
+    if (stats.purchases >= 5) loyalCustomersFiltered++;
+  });
+
+  // Count active customers (all-time basis)
+  allCustomers.forEach(customer => {
+    if (customer.activityStatus === 'Active') {
+      activeCustomersCount++;
+    }
+  });
+
+  return {
+    kpis: {
+      totalCustomers: totalCustomersFiltered,
+      repeatCustomers: repeatCustomersFiltered,
+      loyalCustomers: loyalCustomersFiltered,
+      activeCustomersCount: activeCustomersCount,
+      atRiskCustomers: atRiskCount,
+      lostCustomersCount: lostCount,
+      dormantRevenue: dormantRevenue
+    },
+    allCustomers,
+    topLoyalCustomers
+  };
+}
+
 function processSales(data, filters = {}) {
   const { startDate, endDate, agent: filterAgent } = filters;
 
@@ -35,6 +156,18 @@ function processSales(data, filters = {}) {
       totalRevenue: 0,
       totalCustomers: 0,
       revenueByAgent: {},
+      customerIntelligence: {
+        kpis: {
+          totalCustomers: 0,
+          repeatCustomers: 0,
+          loyalCustomers: 0,
+          atRiskCustomers: 0,
+          lostCustomersCount: 0,
+          dormantRevenue: 0
+        },
+        allCustomers: [],
+        topLoyalCustomers: []
+      }
     };
   }
 
@@ -51,6 +184,66 @@ function processSales(data, filters = {}) {
   const rows = data.slice(1); // skip header
   console.log('Rows before filter:', rows.length);
 
+  // ===== FIRST PASS: ALL-TIME METRICS (No filters) =====
+  const allTimeStats = {};
+  rows.forEach((row) => {
+    const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
+    if (!phone) return;
+
+    const name = nameIdx >= 0 ? row[nameIdx] || 'Unknown' : 'Unknown';
+    let amountStr = amountIdx >= 0 ? row[amountIdx] : '';
+    amountStr = String(amountStr).replace(/[^0-9.\-]/g, '');
+    let amount = parseFloat(amountStr);
+    if (isNaN(amount)) amount = 0;
+
+    const validAmount = amount > 0 && amount <= 100000;
+    const location = locationIdx >= 0 ? (row[locationIdx] || '').toString().trim() : 'Unknown';
+    
+    let rowDateParsed = null;
+    if (dateIdx >= 0) {
+      const raw = row[dateIdx];
+      if (raw) {
+        const parsed = new Date(raw);
+        if (!isNaN(parsed.getTime())) {
+          rowDateParsed = parsed;
+        }
+      }
+    }
+
+    if (!allTimeStats[phone]) {
+      allTimeStats[phone] = {
+        name,
+        purchases: 0,
+        spent: 0,
+        lastPurchaseDate: null,
+        location: location
+      };
+    }
+
+    allTimeStats[phone].purchases += 1;
+    if (validAmount) {
+      allTimeStats[phone].spent += amount;
+    }
+
+    // Update most recent location
+    if (location !== 'Unknown') {
+      allTimeStats[phone].location = location;
+    }
+
+    // Track most recent date
+    if (rowDateParsed) {
+      if (!allTimeStats[phone].lastPurchaseDate) {
+        allTimeStats[phone].lastPurchaseDate = rowDateParsed.toISOString().split('T')[0];
+      } else {
+        const existingDate = new Date(allTimeStats[phone].lastPurchaseDate);
+        if (rowDateParsed > existingDate) {
+          allTimeStats[phone].lastPurchaseDate = rowDateParsed.toISOString().split('T')[0];
+        }
+      }
+    }
+  });
+
+  // ===== SECOND PASS: FILTERED-PERIOD METRICS (With filters) =====
   const revenueByAgent = {};
   const phones = new Set();
 
@@ -73,8 +266,8 @@ function processSales(data, filters = {}) {
     previousStart = new Date(filterStartDate.getTime() - (periodDiff || 0));
   }
 
-  // track per-customer stats
-  const customerStats = {};
+  // track per-customer stats (filtered period)
+  const filteredStats = {};
   // track daily sales
   const salesOverTime = {};
   // track daily revenue
@@ -203,41 +396,57 @@ function processSales(data, filters = {}) {
       }
     }
 
-    // update customer stats regardless of amount validity
+    // update filtered-period customer stats
     if (phone !== undefined) {
-      if (!customerStats[phone]) {
-        customerStats[phone] = { name, purchases: 0, totalSpent: 0 };
+      if (!filteredStats[phone]) {
+        filteredStats[phone] = { purchases: 0, spent: 0, lastPurchaseDate: null };
       }
-      customerStats[phone].purchases += 1;
+      filteredStats[phone].purchases += 1;
       if (validAmount) {
-        customerStats[phone].totalSpent += amount;
+        filteredStats[phone].spent += amount;
+      }
+      // Track most recent date in filtered period
+      if (rowDateParsed) {
+        if (!filteredStats[phone].lastPurchaseDate) {
+          filteredStats[phone].lastPurchaseDate = rowDateParsed.toISOString().split('T')[0];
+        } else {
+          const existingDate = new Date(filteredStats[phone].lastPurchaseDate);
+          if (rowDateParsed > existingDate) {
+            filteredStats[phone].lastPurchaseDate = rowDateParsed.toISOString().split('T')[0];
+          }
+        }
       }
     }
   });
 
   console.log('Rows after filter:', totalSales, '(sales counted)');
 
-  // compute customer-level metrics
+  // compute customer-level metrics for filtered period
   let repeatCustomers = 0;
   const topCustomersArray = [];
-  for (const [phone, stats] of Object.entries(customerStats)) {
+  for (const [phone, stats] of Object.entries(filteredStats)) {
     if (stats.purchases > 1) repeatCustomers += 1;
-    topCustomersArray.push({ name: stats.name, phone, purchases: stats.purchases, totalSpent: stats.totalSpent });
+    topCustomersArray.push({
+      name: allTimeStats[phone]?.name || 'Unknown',
+      phone,
+      purchases: stats.purchases,
+      totalSpent: stats.spent
+    });
   }
 
   topCustomersArray.sort((a, b) => b.totalSpent - a.totalSpent);
   const topCustomers = topCustomersArray.slice(0, 5);
 
-  // purchase frequency distribution
+  // purchase frequency distribution (filtered period)
   const purchaseDistribution = {
     onePurchase: 0,
     twoPurchases: 0,
     threePlusPurchases: 0,
   };
-  Object.values(customerStats).forEach(cust => {
-    if (cust.purchases === 1) purchaseDistribution.onePurchase++;
-    else if (cust.purchases === 2) purchaseDistribution.twoPurchases++;
-    else if (cust.purchases >= 3) purchaseDistribution.threePlusPurchases++;
+  Object.values(filteredStats).forEach(stats => {
+    if (stats.purchases === 1) purchaseDistribution.onePurchase++;
+    else if (stats.purchases === 2) purchaseDistribution.twoPurchases++;
+    else if (stats.purchases >= 3) purchaseDistribution.threePlusPurchases++;
   });
 
   // calculate revenue growth percentage
@@ -332,10 +541,14 @@ function processSales(data, filters = {}) {
     recommendations.push('\ud83d\udc49 Introduce loyalty offers to improve repeat purchases');
   }
 
+  // Generate customer intelligence
+  const currentDate = new Date().toISOString().split('T')[0];
+  const customerIntelligence = generateCustomerIntelligence(allTimeStats, filteredStats, currentDate);
+
   return {
     totalSales,
     totalRevenue,
-    totalCustomers,
+    totalCustomers: phones.size,
     revenueByAgent,
     agentLeaderboard,
     repeatCustomers,
@@ -357,6 +570,7 @@ function processSales(data, filters = {}) {
     trends,
     recommendations,
     intelligenceBrief: [...anomalies, ...trends, ...recommendations],
+    customerIntelligence
   };
 }
 

@@ -9,6 +9,7 @@ const { processProduction } = require('./productionProcessor');
 
 const app = express();
 app.use(cors());
+app.use(express.static('frontend'));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +38,7 @@ const CACHE_TTL = 300000; // 5 minutes
 
 app.get('/analytics', async (req, res) => {
   console.log('Analytics request received');
+  const requestStartTime = Date.now();
   try {
     const { startDate, endDate, agent } = req.query;
     const cacheKey = JSON.stringify({ startDate, endDate, agent });
@@ -44,17 +46,39 @@ app.get('/analytics', async (req, res) => {
     // Serve from cache if recent
     const cached = analyticsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('Using cached analytics for', cacheKey);
-      return res.json(cached.data);
+      const cacheHitTime = Date.now() - requestStartTime;
+      console.log(`Cache HIT - served in ${cacheHitTime}ms`);
+      const response = { ...cached.data, _meta: { ...cached.data._meta, cacheHit: true, responseTimeMs: cacheHitTime } };
+      return res.json(response);
     }
 
-    console.log('Refreshing analytics for', cacheKey);
+    console.log('Cache MISS - refreshing analytics');
+    const sheetsStartTime = Date.now();
     const rows = await getSalesData();
+    const sheetsTime = Date.now() - sheetsStartTime;
+    
+    const processingStartTime = Date.now();
     const analytics = processSales(rows, { startDate, endDate, agent });
+    const processingTime = Date.now() - processingStartTime;
 
-    analyticsCache.set(cacheKey, { data: analytics, timestamp: Date.now() });
+    const totalTime = Date.now() - requestStartTime;
+    
+    // Add performance metadata
+    const response = {
+      ...analytics,
+      _meta: {
+        uniqueCustomers: Object.keys(analytics.customerIntelligence?.allCustomers?.map(c => c.phone) || []).length || 0,
+        sheetsRetrievalMs: sheetsTime,
+        processingTimeMs: processingTime,
+        totalResponseTimeMs: totalTime,
+        cacheHit: false,
+        cached: false
+      }
+    };
 
-    res.json(analytics);
+    analyticsCache.set(cacheKey, { data: response, timestamp: Date.now() });
+
+    res.json(response);
   } catch (error) {
     console.error('Analytics endpoint error:', error);
     res.status(500).json({

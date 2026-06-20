@@ -348,6 +348,7 @@ async function loadDashboard(filters = {}) {
 
     renderInsights(data);
     renderBrief(data);
+    populateCustomerIntelligence(data);
   } catch (err) {
     console.error('Failed to load analytics:', err);
   } finally {
@@ -1466,4 +1467,245 @@ if (closeBtn) {
   closeBtn.addEventListener("click", () => {
     document.getElementById("chartSettingsPanel").classList.remove("open");
   });
+}
+
+/* ---------------------------------------------------------------------------
+   CUSTOMER INTELLIGENCE SECTION
+   --------------------------------------------------------------------------- */
+
+let customerIntelligenceData = [];
+let filteredCustomersData = [];
+let currentCustomerPage = 1;
+const customersPerPage = 50;
+let currentCustomerSort = { field: 'rank', order: 'asc' };
+
+function populateCustomerIntelligence(data) {
+  if (!data.customerIntelligence) {
+    console.warn('No customerIntelligence data available');
+    return;
+  }
+
+  const ci = data.customerIntelligence;
+  customerIntelligenceData = ci.allCustomers || [];
+  filteredCustomersData = [...customerIntelligenceData];
+  currentCustomerPage = 1;
+
+  // Populate KPI cards
+  populateCustomerKPIs(ci.kpis);
+  
+  // Render customer table
+  renderCustomerLeaderboard();
+  
+  // Setup event listeners
+  setupCustomerSearch();
+  setupCustomerSort();
+  setupCustomerPagination();
+}
+
+function populateCustomerKPIs(kpis) {
+  const mapping = {
+    'ci-total-customers': kpis.totalCustomers || 0,
+    'ci-active-customers': kpis.activeCustomersCount || 0,
+    'ci-repeat-customers': kpis.repeatCustomers || 0,
+    'ci-loyal-customers': kpis.loyalCustomers || 0,
+    'ci-at-risk-customers': kpis.atRiskCustomers || 0,
+    'ci-lost-customers': kpis.lostCustomersCount || 0,
+    'ci-dormant-revenue': kpis.dormantRevenue || 0
+  };
+
+  Object.entries(mapping).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (id === 'ci-dormant-revenue') {
+        el.textContent = formatFinance(value);
+      } else {
+        el.textContent = value.toLocaleString();
+      }
+    }
+  });
+}
+
+function getStatusBadgeClass(status) {
+  if (!status) return '';
+  return status.toLowerCase().replace(' ', '-');
+}
+
+function renderCustomerLeaderboard() {
+  const tbody = document.getElementById('customerTableBody');
+  if (!tbody) return;
+
+  const startIdx = (currentCustomerPage - 1) * customersPerPage;
+  const endIdx = startIdx + customersPerPage;
+  const pageCustomers = filteredCustomersData.slice(startIdx, endIdx);
+
+  tbody.innerHTML = '';
+
+  if (pageCustomers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">No customers found</td></tr>';
+    return;
+  }
+
+  pageCustomers.forEach(customer => {
+    const tr = document.createElement('tr');
+    
+    const cells = [
+      customer.rank || '-',
+      customer.name || '-',
+      customer.phone || '-',
+      customer.location || '-',
+      customer.filteredOrders || 0,
+      formatFinance(customer.filteredRevenue || 0),
+      customer.filteredRecurringStatus || '-',
+      customer.allTimeLastPurchaseDate ? new Date(customer.allTimeLastPurchaseDate).toLocaleDateString() : '-',
+      customer.daysSinceLastPurchase !== null ? customer.daysSinceLastPurchase : '-',
+      customer.activityStatus || '-',
+      formatFinance(customer.customerLifetimeValue || 0)
+    ];
+
+    cells.forEach((cell, idx) => {
+      const td = document.createElement('td');
+      
+      // Handle recurring status badge
+      if (idx === 6 && cell !== '-') {
+        const badge = document.createElement('span');
+        badge.className = 'status-badge ' + getStatusBadgeClass(cell);
+        badge.textContent = cell;
+        td.appendChild(badge);
+      }
+      // Handle activity status badge
+      else if (idx === 9 && cell !== '-') {
+        const badge = document.createElement('span');
+        badge.className = 'status-badge ' + getStatusBadgeClass(cell);
+        badge.textContent = cell;
+        td.appendChild(badge);
+      }
+      // Handle numeric columns
+      else if (idx === 4 || idx === 5 || idx === 10) {
+        td.textContent = cell;
+        td.style.textAlign = 'right';
+      }
+      else {
+        td.textContent = cell;
+      }
+      
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  updateCustomerPaginationInfo();
+}
+
+function updateCustomerPaginationInfo() {
+  const info = document.getElementById('customerPaginationInfo');
+  if (info) {
+    const startIdx = (currentCustomerPage - 1) * customersPerPage + 1;
+    const endIdx = Math.min(currentCustomerPage * customersPerPage, filteredCustomersData.length);
+    info.textContent = \Showing \-\ of \\;
+  }
+
+  const prevBtn = document.getElementById('customerPrevBtn');
+  const nextBtn = document.getElementById('customerNextBtn');
+  
+  if (prevBtn) prevBtn.disabled = currentCustomerPage === 1;
+  if (nextBtn) nextBtn.disabled = currentCustomerPage >= Math.ceil(filteredCustomersData.length / customersPerPage);
+}
+
+function setupCustomerSearch() {
+  const searchInput = document.getElementById('customerSearch');
+  if (!searchInput) return;
+
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    
+    filteredCustomersData = customerIntelligenceData.filter(customer => {
+      const name = (customer.name || '').toLowerCase();
+      const phone = (customer.phone || '').toLowerCase();
+      const location = (customer.location || '').toLowerCase();
+      
+      return name.includes(query) || phone.includes(query) || location.includes(query);
+    });
+
+    currentCustomerPage = 1;
+    applyCustomerSort();
+    renderCustomerLeaderboard();
+  });
+}
+
+function setupCustomerSort() {
+  const headers = document.querySelectorAll('.customer-table th.sortable');
+  headers.forEach(header => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      
+      // Toggle sort order if same field clicked
+      if (currentCustomerSort.field === field) {
+        currentCustomerSort.order = currentCustomerSort.order === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentCustomerSort.field = field;
+        currentCustomerSort.order = 'asc';
+      }
+
+      // Update visual indicators
+      headers.forEach(h => {
+        h.classList.remove('sort-asc', 'sort-desc');
+      });
+      header.classList.add('sort-' + currentCustomerSort.order);
+
+      applyCustomerSort();
+      renderCustomerLeaderboard();
+    });
+  });
+}
+
+function applyCustomerSort() {
+  const field = currentCustomerSort.field;
+  const order = currentCustomerSort.order;
+
+  filteredCustomersData.sort((a, b) => {
+    let aVal = a[field];
+    let bVal = b[field];
+
+    // Handle numeric comparisons
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return order === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+
+    // Handle string comparisons
+    aVal = String(aVal || '');
+    bVal = String(bVal || '');
+    
+    if (order === 'asc') {
+      return aVal.localeCompare(bVal);
+    } else {
+      return bVal.localeCompare(aVal);
+    }
+  });
+}
+
+function setupCustomerPagination() {
+  const prevBtn = document.getElementById('customerPrevBtn');
+  const nextBtn = document.getElementById('customerNextBtn');
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (currentCustomerPage > 1) {
+        currentCustomerPage--;
+        renderCustomerLeaderboard();
+        document.querySelector('.customer-table-container').scrollTop = 0;
+      }
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      const maxPage = Math.ceil(filteredCustomersData.length / customersPerPage);
+      if (currentCustomerPage < maxPage) {
+        currentCustomerPage++;
+        renderCustomerLeaderboard();
+        document.querySelector('.customer-table-container').scrollTop = 0;
+      }
+    });
+  }
 }
