@@ -1708,6 +1708,29 @@ main.expanded {
   }
 }
 
+@media (max-width: 480px) {
+  .customer-profile-drawer {
+    width: 100%;
+    right: -100%;
+  }
+  
+  .drawer-header {
+    padding: 12px;
+  }
+  
+  .drawer-content {
+    padding: 12px;
+  }
+  
+  .drawer-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .drawer-section-title {
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .customer-intelligence {
     padding: 0 16px 24px;

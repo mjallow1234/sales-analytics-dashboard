@@ -1905,4 +1905,14 @@ function setupDrawerCloseButton() {
       }
     }
   });
+  
+  // Close drawer on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const drawer = document.getElementById('customerProfileDrawer');
+      if (drawer && drawer.classList.contains('open')) {
+        closeCustomerProfileDrawer();
+      }
+    }
+  });
 }

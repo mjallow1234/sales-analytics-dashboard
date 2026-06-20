@@ -27,7 +27,7 @@ function calculateDaysSince(lastPurchaseDate, currentDate) {
   return diffDays;
 }
 
-function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate) {
+function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, purchaseHistory = {}) {
   // Calculate activity status and days since for all-time metrics
   const allCustomers = [];
   let atRiskCount = 0;
@@ -62,6 +62,14 @@ function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate) 
       filteredRecurringStatus = 'Returning';
     }
 
+    // Get purchase history for this customer and sort newest first
+    let customerPurchases = purchaseHistory[phone] || [];
+    customerPurchases = [...customerPurchases].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA; // newest first
+    }).slice(0, 50); // limit to 50
+
     const customer = {
       name: allStats.name,
       phone,
@@ -79,8 +87,11 @@ function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate) 
       daysSinceLastPurchase: daysSinceLastPurchase === Infinity ? null : daysSinceLastPurchase,
       activityStatus,
       
-      // Customer lifetime value
-      customerLifetimeValue: allStats.spent
+      // Customer lifetime value (from all-time revenue)
+      customerLifetimeValue: allStats.spent,
+      
+      // Purchase history for drawer
+      purchases: customerPurchases
     };
 
     allCustomers.push(customer);
@@ -276,6 +287,8 @@ function processSales(data, filters = {}) {
   const salesByProduct = {};
   // track revenue by location
   const revenueByLocation = {};
+  // track purchase history per customer (for drawer)
+  const purchaseHistory = {};
 
   rows.forEach((row) => {
     // parse date once for filtering and growth
@@ -405,6 +418,19 @@ function processSales(data, filters = {}) {
       if (validAmount) {
         filteredStats[phone].spent += amount;
       }
+      
+      // Collect purchase history for drawer (all-time, for context)
+      if (!purchaseHistory[phone]) {
+        purchaseHistory[phone] = [];
+      }
+      const product = productIdx >= 0 ? (row[productIdx] || 'Unknown') : 'Unknown';
+      const dateStr = rowDateParsed ? rowDateParsed.toISOString().split('T')[0] : 'Unknown';
+      purchaseHistory[phone].push({
+        date: dateStr,
+        product: product,
+        amount: validAmount ? amount : 0
+      });
+      
       // Track most recent date in filtered period
       if (rowDateParsed) {
         if (!filteredStats[phone].lastPurchaseDate) {
@@ -543,7 +569,7 @@ function processSales(data, filters = {}) {
 
   // Generate customer intelligence
   const currentDate = new Date().toISOString().split('T')[0];
-  const customerIntelligence = generateCustomerIntelligence(allTimeStats, filteredStats, currentDate);
+  const customerIntelligence = generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, purchaseHistory);
 
   return {
     totalSales,
