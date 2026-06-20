@@ -175,7 +175,7 @@ function updateFilterSummary(filters) {
   if (!summary) return;
   const parts = [];
   if (filters.agent) {
-    parts.push(`Agent: ${filters.agent}`);
+    parts.push(`Affiliate: ${filters.agent}`);
   }
   if (filters.product) {
     parts.push(`Product: ${filters.product}`);
@@ -370,7 +370,7 @@ function generateInsights(data) {
   const topAgent = Object.entries(data.revenueByAgent || {})
     .sort((a, b) => b[1] - a[1])[0];
   if (topAgent) {
-    insights.push(`Top agent is ${topAgent[0]} with ${formatFinance(topAgent[1])}`);
+    insights.push(`Top affiliate is ${topAgent[0]} with ${formatFinance(topAgent[1])}`);
   }
 
   const topLocation = Object.entries(data.revenueByLocation || {})
@@ -651,7 +651,7 @@ function populateAgentDropdown(data) {
   const agentSelect = document.getElementById('agentFilter');
   if (!agentSelect) return;
   const selected = agentSelect.value;
-  agentSelect.innerHTML = '<option value="">All Agents</option>';
+  agentSelect.innerHTML = '<option value="">All Affiliates</option>';
   agentLabels.forEach(a => {
     const opt = document.createElement('option');
     opt.value = a;
@@ -1502,6 +1502,8 @@ function populateCustomerIntelligence(data) {
     setupCustomerSearch();
     setupCustomerSort();
     setupCustomerPagination();
+    setupCustomerRowClicks();
+    setupDrawerCloseButton();
     customerIntelligenceInitialized = true;
   }
 }
@@ -1712,4 +1714,195 @@ function setupCustomerPagination() {
       }
     });
   }
+}
+
+/* ---------------------------------------------------------------------------
+   CUSTOMER PROFILE DRAWER
+   --------------------------------------------------------------------------- */
+
+let selectedCustomerForDrawer = null;
+
+function setupCustomerRowClicks() {
+  const tableBody = document.getElementById('customerTableBody');
+  if (!tableBody) return;
+  
+  tableBody.addEventListener('click', (e) => {
+    const row = e.target.closest('tr');
+    if (!row) return;
+    
+    const rank = row.cells[0]?.textContent;
+    const customer = filteredCustomersData.find(c => c.rank == rank);
+    if (customer) {
+      openCustomerProfileDrawer(customer);
+    }
+  });
+}
+
+function openCustomerProfileDrawer(customer) {
+  selectedCustomerForDrawer = customer;
+  
+  // Populate header
+  document.getElementById('drawerCustomerName').textContent = customer.name;
+  document.getElementById('drawerCustomerPhone').textContent = customer.phone || '—';
+  document.getElementById('drawerCustomerLocation').textContent = customer.location || '—';
+  
+  // Populate summary cards
+  document.getElementById('drawerFilteredOrders').textContent = customer.filteredOrders || 0;
+  document.getElementById('drawerFilteredRevenue').textContent = formatFinance(customer.filteredRevenue || 0);
+  document.getElementById('drawerAllTimeOrders').textContent = customer.allTimeOrders || 0;
+  document.getElementById('drawerLifetimeValue').textContent = formatFinance(customer.customerLifetimeValue || 0);
+  
+  // Populate activity section
+  document.getElementById('drawerLastPurchase').textContent = customer.allTimeLastPurchaseDate || '—';
+  document.getElementById('drawerDaysSince').textContent = customer.daysSinceLastPurchase === Infinity ? '—' : customer.daysSinceLastPurchase;
+  document.getElementById('drawerActivityStatus').textContent = customer.activityStatus || '—';
+  document.getElementById('drawerRecurringStatus').textContent = customer.filteredRecurringStatus || '—';
+  
+  // Populate purchase history
+  populateDrawerPurchaseHistory(customer);
+  
+  // Generate and display insights
+  const insights = generateCustomerInsights(customer);
+  populateDrawerInsights(insights);
+  
+  // Show drawer
+  const drawer = document.getElementById('customerProfileDrawer');
+  if (drawer) {
+    drawer.classList.add('open');
+  }
+}
+
+function closeCustomerProfileDrawer() {
+  const drawer = document.getElementById('customerProfileDrawer');
+  if (drawer) {
+    drawer.classList.remove('open');
+  }
+  selectedCustomerForDrawer = null;
+}
+
+function populateDrawerPurchaseHistory(customer) {
+  const historyBody = document.getElementById('drawerHistoryTableBody');
+  const countSpan = document.getElementById('drawerPurchaseCount');
+  
+  if (!historyBody) return;
+  
+  historyBody.innerHTML = '';
+  
+  // Check if purchases data is available
+  if (!customer.purchases || customer.purchases.length === 0) {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td colspan="3" style="text-align: center; color: #9ca3af;">Purchase history not available</td>`;
+    historyBody.appendChild(row);
+    countSpan.textContent = '(0)';
+    return;
+  }
+  
+  // Sort purchases by date, newest first, limit to 50
+  const sortedPurchases = [...customer.purchases]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 50);
+  
+  countSpan.textContent = `(${sortedPurchases.length})`;
+  
+  sortedPurchases.forEach(purchase => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${purchase.date || '—'}</td>
+      <td>${purchase.invoice || '—'}</td>
+      <td>${formatFinance(purchase.amount || 0)}</td>
+    `;
+    historyBody.appendChild(row);
+  });
+}
+
+function generateCustomerInsights(customer) {
+  const insights = [];
+  
+  // Loyalty insight
+  if (customer.filteredRecurringStatus === 'Loyal' && customer.activityStatus === 'Active') {
+    insights.push({
+      type: 'value',
+      text: `🌟 Loyal & Active: ${customer.name} has made 5+ purchases in the selected period and purchased recently.`
+    });
+  }
+  
+  // At-risk insight
+  if (customer.activityStatus === 'At Risk') {
+    insights.push({
+      type: 'risk',
+      text: `⚠️ At Risk: No purchases in 31-90 days. Consider a re-engagement campaign.`
+    });
+  }
+  
+  // Lost customer insight
+  if (customer.activityStatus === 'Lost') {
+    insights.push({
+      type: 'loss',
+      text: `❌ Lost Customer: No purchases for over 90 days. May require special attention.`
+    });
+  }
+  
+  // High-value insight
+  if (customer.customerLifetimeValue > 50000) {
+    insights.push({
+      type: 'value',
+      text: `💎 High-Value Customer: Lifetime value exceeds 50,000 GMD. Priority support recommended.`
+    });
+  }
+  
+  // New customer insight
+  if (customer.allTimeOrders === 1) {
+    insights.push({
+      type: 'value',
+      text: `🆕 New Customer: First-time buyer with 1 all-time order. Great opportunity for follow-up.`
+    });
+  }
+  
+  // Returning customer insight
+  if (customer.filteredRecurringStatus === 'Returning' && customer.activityStatus === 'Active') {
+    insights.push({
+      type: 'value',
+      text: `👥 Returning & Active: 2-4 purchases in the selected period. Strong engagement.`
+    });
+  }
+  
+  // Never purchased in period but has all-time history
+  if (customer.filteredOrders === 0 && customer.allTimeOrders > 0) {
+    insights.push({
+      type: 'risk',
+      text: `📊 Inactive This Period: No purchases in the selected date range, but has ${customer.allTimeOrders} all-time orders. Consider targeted offers.`
+    });
+  }
+  
+  return insights.length > 0 ? insights : [{ type: 'value', text: 'No specific insights available at this time.' }];
+}
+
+function populateDrawerInsights(insights) {
+  const insightsContainer = document.getElementById('drawerInsights');
+  if (!insightsContainer) return;
+  
+  insightsContainer.innerHTML = '';
+  insights.forEach(insight => {
+    const div = document.createElement('div');
+    div.className = `drawer-insight-item ${insight.type}`;
+    div.textContent = insight.text;
+    insightsContainer.appendChild(div);
+  });
+}
+
+function setupDrawerCloseButton() {
+  const closeBtn = document.getElementById('closeDrawerBtn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeCustomerProfileDrawer);
+  }
+  
+  // Close drawer when clicking outside (on main content)
+  document.addEventListener('click', (e) => {
+    const drawer = document.getElementById('customerProfileDrawer');
+    if (drawer && !drawer.contains(e.target) && !e.target.closest('tr')) {
+      if (drawer.classList.contains('open')) {
+        closeCustomerProfileDrawer();
+      }
+    }
+  });
 }

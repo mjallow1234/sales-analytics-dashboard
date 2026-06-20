@@ -38,9 +38,9 @@
       <input type="date" id="startDate" />
       <label>End Date</label>
       <input type="date" id="endDate" />
-      <label>Agent</label>
+      <label>Affiliate</label>
       <select id="agentFilter">
-        <option value="">All Agents</option>
+        <option value="">All Affiliates</option>
       </select>
     </section>
     <div class="quick-filters">
@@ -142,7 +142,7 @@
           <button class="tile-remove">🗑</button>
         </div>
         <div class="tile-content">
-          <h3>Revenue by Agent</h3>
+          <h3>Revenue by Affiliate</h3>
           <canvas id="chart-agent"></canvas>
         </div>
         <div class="tile-resize-handle"></div>
@@ -252,30 +252,86 @@
         <div class="customer-kpi-card">
           <h3>Total Customers</h3>
           <p class="kpi-value" id="ci-total-customers">0</p>
+          <p class="kpi-description">All unique customers who have ever purchased</p>
         </div>
         <div class="customer-kpi-card">
           <h3>Active Customers</h3>
           <p class="kpi-value" id="ci-active-customers">0</p>
+          <p class="kpi-description">Purchased within the last 30 days</p>
         </div>
         <div class="customer-kpi-card">
           <h3>Repeat Customers</h3>
           <p class="kpi-value" id="ci-repeat-customers">0</p>
+          <p class="kpi-description">Placed 2–4 orders in the selected period</p>
         </div>
         <div class="customer-kpi-card">
           <h3>Loyal Customers</h3>
           <p class="kpi-value" id="ci-loyal-customers">0</p>
+          <p class="kpi-description">Placed 5+ orders in the selected period</p>
         </div>
         <div class="customer-kpi-card">
           <h3>At Risk Customers</h3>
           <p class="kpi-value" id="ci-at-risk-customers">0</p>
+          <p class="kpi-description">No purchase for 31–90 days</p>
         </div>
         <div class="customer-kpi-card">
           <h3>Lost Customers</h3>
           <p class="kpi-value" id="ci-lost-customers">0</p>
+          <p class="kpi-description">No purchase for 90+ days</p>
         </div>
         <div class="customer-kpi-card">
           <h3>Dormant Revenue</h3>
           <p class="kpi-value" id="ci-dormant-revenue">0</p>
+          <p class="kpi-description">Revenue from At Risk + Lost customers</p>
+        </div>
+      </div>
+
+      <!-- Customer Status Definitions -->
+      <div class="customer-status-definitions">
+        <h4>Customer Status Definitions</h4>
+        <div class="definition-grid">
+          <div class="definition-item">
+            <span class="definition-badge" style="background-color: #10b981;"></span>
+            <div>
+              <strong>Active</strong>
+              <p>Purchased within last 30 days</p>
+            </div>
+          </div>
+          <div class="definition-item">
+            <span class="definition-badge" style="background-color: #f59e0b;"></span>
+            <div>
+              <strong>At Risk</strong>
+              <p>No purchase in 31–90 days</p>
+            </div>
+          </div>
+          <div class="definition-item">
+            <span class="definition-badge" style="background-color: #ef4444;"></span>
+            <div>
+              <strong>Lost</strong>
+              <p>No purchase in 90+ days</p>
+            </div>
+          </div>
+          <div class="definition-item">
+            <span class="definition-badge" style="background-color: #3b82f6;"></span>
+            <div>
+              <strong>Loyal</strong>
+              <p>5+ purchases in selected period</p>
+            </div>
+          </div>
+          <div class="definition-item">
+            <span class="definition-badge" style="background-color: #8b5cf6;"></span>
+            <div>
+              <strong>Returning</strong>
+              <p>2–4 purchases in selected period</p>
+            </div>
+          </div>
+          <div class="definition-item">
+            <span class="definition-badge" style="background-color: #ec4899;"></span>
+            <div>
+              <strong>Dormant Revenue</strong>
+              <p>Revenue from At Risk + Lost customers</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -314,6 +370,93 @@
         </table>
       </div>
     </section>
+
+    <!-- Customer Profile Drawer -->
+    <div id="customerProfileDrawer" class="customer-profile-drawer">
+      <div class="drawer-header">
+        <button id="closeDrawerBtn" class="close-drawer-btn">&times;</button>
+        <div class="drawer-customer-info">
+          <h2 id="drawerCustomerName">Customer Name</h2>
+          <p id="drawerCustomerPhone" class="drawer-subtext">Phone</p>
+          <p id="drawerCustomerLocation" class="drawer-subtext">Location</p>
+        </div>
+      </div>
+
+      <div class="drawer-content">
+        <!-- Summary Cards -->
+        <div class="drawer-section">
+          <h4 class="drawer-section-title">Summary</h4>
+          <div class="drawer-cards-grid">
+            <div class="drawer-card">
+              <p class="drawer-label">Orders</p>
+              <p class="drawer-value" id="drawerFilteredOrders">0</p>
+              <p class="drawer-sub-label">Filtered Period</p>
+            </div>
+            <div class="drawer-card">
+              <p class="drawer-label">Revenue</p>
+              <p class="drawer-value" id="drawerFilteredRevenue">0</p>
+              <p class="drawer-sub-label">Filtered Period</p>
+            </div>
+            <div class="drawer-card">
+              <p class="drawer-label">All-Time Orders</p>
+              <p class="drawer-value" id="drawerAllTimeOrders">0</p>
+            </div>
+            <div class="drawer-card">
+              <p class="drawer-label">Lifetime Value</p>
+              <p class="drawer-value" id="drawerLifetimeValue">0</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Section -->
+        <div class="drawer-section">
+          <h4 class="drawer-section-title">Activity</h4>
+          <div class="drawer-activity">
+            <div class="activity-item">
+              <span class="activity-label">Last Purchase:</span>
+              <span class="activity-value" id="drawerLastPurchase">—</span>
+            </div>
+            <div class="activity-item">
+              <span class="activity-label">Days Since:</span>
+              <span class="activity-value" id="drawerDaysSince">—</span>
+            </div>
+            <div class="activity-item">
+              <span class="activity-label">Activity Status:</span>
+              <span class="activity-value" id="drawerActivityStatus">—</span>
+            </div>
+            <div class="activity-item">
+              <span class="activity-label">Recurring Status:</span>
+              <span class="activity-value" id="drawerRecurringStatus">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Purchase History -->
+        <div class="drawer-section">
+          <h4 class="drawer-section-title">Purchase History <span class="drawer-count" id="drawerPurchaseCount">(0)</span></h4>
+          <div class="drawer-purchase-history">
+            <table class="drawer-history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Invoice</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody id="drawerHistoryTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Customer Insights -->
+        <div class="drawer-section">
+          <h4 class="drawer-section-title">Insights</h4>
+          <div class="drawer-insights" id="drawerInsights">
+          </div>
+        </div>
+      </div>
+    </div>
 
   </main>
 
