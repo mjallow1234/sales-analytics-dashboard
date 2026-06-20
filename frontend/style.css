@@ -1757,3 +1757,214 @@ main.expanded {
     overflow-x: auto;
   }
 }
+
+/* V3 Features: VIP Status, Customer Journey, Recovery Plan, Affiliate Intelligence */
+
+/* VIP Status Styling */
+.vip-badge-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vip-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.vip-tier-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.vip-benefits {
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.benefits-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.vip-benefits ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.vip-benefits li {
+  font-size: 11px;
+  color: #78350f;
+  margin-bottom: 4px;
+  padding-left: 16px;
+  position: relative;
+}
+
+.vip-benefits li:before {
+  content: "★";
+  position: absolute;
+  left: 0;
+  color: #f59e0b;
+}
+
+/* Customer Journey Timeline */
+.customer-journey-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.journey-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  position: relative;
+}
+
+.journey-item:not(:last-child):after {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: 100%;
+  width: 2px;
+  height: 20px;
+  background: #d1d5db;
+}
+
+.journey-date {
+  font-size: 11px;
+  color: #6b7280;
+  min-width: 80px;
+  font-weight: 600;
+}
+
+.journey-milestone {
+  font-size: 12px;
+  color: #111827;
+  font-weight: 500;
+  padding: 4px 8px;
+  background: white;
+  border-radius: 4px;
+  border-left: 3px solid #3b82f6;
+  flex: 1;
+}
+
+.journey-spacer {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0 0;
+}
+
+/* Lost Customer Recovery */
+.recovery-plan-card {
+  background: #fee2e2;
+  border-left: 3px solid #ef4444;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.recovery-priority {
+  font-size: 11px;
+  font-weight: 700;
+  color: #991b1b;
+  background: #fecaca;
+  padding: 4px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recovery-strategy,
+.recovery-offer,
+.recovery-incentive {
+  margin-bottom: 10px;
+}
+
+.recovery-strategy:last-child,
+.recovery-offer:last-child,
+.recovery-incentive:last-child {
+  margin-bottom: 0;
+}
+
+.recovery-label {
+  font-size: 10px;
+  color: #7f1d1d;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.recovery-value {
+  font-size: 12px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.recovery-highlight {
+  background: #fecaca;
+  padding: 4px 8px;
+  border-radius: 3px;
+  color: #7f1d1d;
+  font-weight: 700;
+}
+
+/* Affiliate Performance */
+.affiliate-performance-card {
+  background: #f0f9ff;
+  border-left: 3px solid #0ea5e9;
+  padding: 12px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.affiliate-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #cffafe;
+}
+
+.affiliate-metric:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: #0c4a6e;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 12px;
+  color: #111827;
+  font-weight: 700;
+  text-align: right;
+}

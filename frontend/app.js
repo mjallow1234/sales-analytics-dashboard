@@ -309,6 +309,7 @@ async function loadDashboard(filters = {}) {
     if (!res.ok) throw new Error('Network response not ok');
     const data = await res.json();
     _lastAnalyticsData = data;
+    window.lastFullAnalyticsData = data; // V3: Store for affiliate intelligence access
 
     updateCards(data);
     // table removed, no need to updateTopCustomers
@@ -1764,6 +1765,18 @@ function openCustomerProfileDrawer(customer) {
   // Generate and display insights
   const insights = generateCustomerInsights(customer);
   populateDrawerInsights(insights);
+
+  // V3: Display VIP Status
+  populateDrawerVipStatus(customer);
+
+  // V3: Display Customer Journey
+  populateDrawerJourneyTimeline(customer);
+
+  // V3: Display Recovery Plan (if applicable)
+  populateDrawerRecoveryPlan(customer);
+
+  // V3: Display Affiliate Performance
+  populateDrawerAffiliatePerformance(customer);
   
   // Show drawer
   const drawer = document.getElementById('customerProfileDrawer');
@@ -1915,4 +1928,137 @@ function setupDrawerCloseButton() {
       }
     }
   });
+}
+
+// V3: Populate VIP Status section in drawer
+function populateDrawerVipStatus(customer) {
+  const vipSection = document.getElementById('drawerVipSection');
+  if (!vipSection) return;
+  
+  if (customer.vipStatus && customer.vipStatus.isVip) {
+    vipSection.style.display = 'block';
+    
+    // Update VIP tier
+    const badgeEl = document.getElementById('drawerVipBadge');
+    const tierEl = document.getElementById('drawerVipTier');
+    
+    if (badgeEl) {
+      badgeEl.textContent = `${customer.vipStatus.tier} Member`;
+      badgeEl.className = `vip-badge vip-${customer.vipStatus.tier.toLowerCase()}`;
+    }
+    
+    if (tierEl) {
+      tierEl.textContent = `Premium ${customer.vipStatus.tier} Tier Customer`;
+    }
+    
+    // Display benefits
+    const benefitsEl = document.getElementById('drawerVipBenefits');
+    if (benefitsEl && customer.vipStatus.benefits && customer.vipStatus.benefits.length > 0) {
+      benefitsEl.innerHTML = customer.vipStatus.benefits
+        .map(benefit => `<li>${benefit}</li>`)
+        .join('');
+    }
+  } else {
+    vipSection.style.display = 'none';
+  }
+}
+
+// V3: Populate Customer Journey timeline in drawer
+function populateDrawerJourneyTimeline(customer) {
+  if (!customer.firstPurchaseDate && !customer.lastPurchaseDate) return;
+  
+  const firstDateEl = document.getElementById('journeyFirstPurchase');
+  const lastDateEl = document.getElementById('journeyLastPurchase');
+  const tenureEl = document.getElementById('journeyTenure');
+  
+  if (firstDateEl && customer.firstPurchaseDate) {
+    const firstDate = new Date(customer.firstPurchaseDate);
+    firstDateEl.textContent = firstDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  
+  if (lastDateEl && customer.lastPurchaseDate) {
+    const lastDate = new Date(customer.lastPurchaseDate);
+    lastDateEl.textContent = lastDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  
+  if (tenureEl) {
+    if (customer.tenureYears > 0) {
+      tenureEl.textContent = `${customer.tenureYears}y ${customer.tenureDays % 365}d`;
+    } else if (customer.tenureDays > 0) {
+      tenureEl.textContent = `${customer.tenureDays}d`;
+    } else {
+      tenureEl.textContent = 'New';
+    }
+  }
+}
+
+// V3: Populate Recovery Plan section in drawer (for Lost/At-Risk customers)
+function populateDrawerRecoveryPlan(customer) {
+  const recoverySection = document.getElementById('drawerRecoverySection');
+  if (!recoverySection) return;
+  
+  if (customer.recoveryPlan && (customer.activityStatus === 'Lost' || customer.activityStatus === 'At Risk')) {
+    recoverySection.style.display = 'block';
+    
+    const recoveryPlan = customer.recoveryPlan;
+    
+    const priorityEl = document.getElementById('drawerRecoveryPriority');
+    if (priorityEl) {
+      priorityEl.textContent = `${recoveryPlan.priority || 'NORMAL'} PRIORITY`;
+    }
+    
+    const strategyEl = document.getElementById('drawerRecoveryStrategy');
+    if (strategyEl) {
+      strategyEl.textContent = recoveryPlan.strategy || '—';
+    }
+    
+    const offerEl = document.getElementById('drawerRecoveryOffer');
+    if (offerEl) {
+      offerEl.textContent = recoveryPlan.offer || '—';
+    }
+    
+    const incentiveEl = document.getElementById('drawerRecoveryIncentive');
+    if (incentiveEl) {
+      incentiveEl.textContent = recoveryPlan.incentive || '—';
+    }
+  } else {
+    recoverySection.style.display = 'none';
+  }
+}
+
+// V3: Populate Affiliate Performance section in drawer
+function populateDrawerAffiliatePerformance(customer) {
+  if (!customer.affiliate) return;
+  
+  // Find affiliate metrics from global data
+  const allAnalytics = window.lastFullAnalyticsData || {};
+  const affiliateMetrics = allAnalytics.affiliateMetrics || {};
+  const affiliateData = affiliateMetrics[customer.affiliate];
+  
+  const nameEl = document.getElementById('drawerAffiliateeName');
+  if (nameEl) {
+    nameEl.textContent = customer.affiliate;
+  }
+  
+  if (affiliateData) {
+    const customersEl = document.getElementById('drawerAffiliateCustomers');
+    if (customersEl) {
+      customersEl.textContent = affiliateData.totalCustomers || 0;
+    }
+    
+    const revenueEl = document.getElementById('drawerAffiliateRevenue');
+    if (revenueEl) {
+      revenueEl.textContent = `$${(affiliateData.totalRevenue || 0).toLocaleString()}`;
+    }
+    
+    const aovEl = document.getElementById('drawerAffiliateAOV');
+    if (aovEl) {
+      aovEl.textContent = `$${(affiliateData.avgOrderValue || 0).toLocaleString()}`;
+    }
+    
+    const retentionEl = document.getElementById('drawerAffiliateRetention');
+    if (retentionEl) {
+      retentionEl.textContent = `${(affiliateData.retentionRate || 0)}%`;
+    }
+  }
 }

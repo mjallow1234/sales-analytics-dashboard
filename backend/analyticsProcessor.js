@@ -62,13 +62,27 @@ function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, 
       filteredRecurringStatus = 'Returning';
     }
 
-    // Get purchase history for this customer and sort newest first
-    let customerPurchases = purchaseHistory[phone] || [];
-    customerPurchases = [...customerPurchases].sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return dateB - dateA; // newest first
-    }).slice(0, 50); // limit to 50
+    // Calculate tenure (days since first purchase)
+    const tenureDays = calculateDaysSince(allStats.firstPurchaseDate, currentDate);
+    const tenureYears = tenureDays === Infinity ? 0 : Math.floor(tenureDays / 365);
+
+    // VIP Segmentation: High-value + Recurring + Active
+    const isVip = allStats.spent > 100000 && allStats.purchases >= 5 && activityStatus === 'Active';
+    const vipTier = allStats.spent > 250000 ? 'Platinum' : (allStats.spent > 150000 ? 'Gold' : 'Silver');
+
+    // Lost Customer Recovery Plan
+    let recoveryPlan = null;
+    if (activityStatus === 'Lost' || activityStatus === 'At Risk') {
+      const avgOrderValue = allStats.purchases > 0 ? Math.round(allStats.spent / allStats.purchases) : 0;
+      const winBackOffer = Math.round(avgOrderValue * 0.15); // 15% discount
+      recoveryPlan = {
+        priority: activityStatus === 'Lost' ? 'HIGH' : 'MEDIUM',
+        strategy: activityStatus === 'Lost' ? 'Win-Back Campaign' : 'Re-engagement Campaign',
+        recommendedOffer: `${winBackOffer} GMD discount on next order`,
+        incentive: `Limited time offer - Valid 7 days`,
+        campaignType: allStats.purchases >= 3 ? 'VIP Winback' : 'First-Time Win-back'
+      };
+    }
 
     const customer = {
       name: allStats.name,
@@ -83,12 +97,25 @@ function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, 
       // All-time metrics
       allTimeOrders: allStats.purchases,
       allTimeRevenue: allStats.spent,
+      allTimeFirstPurchaseDate: allStats.firstPurchaseDate,
       allTimeLastPurchaseDate: allStats.lastPurchaseDate,
+      tenureDays: tenureDays === Infinity ? null : tenureDays,
+      tenureYears,
       daysSinceLastPurchase: daysSinceLastPurchase === Infinity ? null : daysSinceLastPurchase,
       activityStatus,
       
       // Customer lifetime value (from all-time revenue)
       customerLifetimeValue: allStats.spent,
+      
+      // VIP Segmentation
+      vipStatus: isVip ? {
+        isVip: true,
+        tier: vipTier,
+        benefits: ['Priority Support', 'Exclusive Offers', 'Early Access to Sales']
+      } : null,
+      
+      // Recovery Plan for lost/at-risk customers
+      recoveryPlan,
       
       // Purchase history for drawer
       purchases: customerPurchases
@@ -226,6 +253,7 @@ function processSales(data, filters = {}) {
         name,
         purchases: 0,
         spent: 0,
+        firstPurchaseDate: null,
         lastPurchaseDate: null,
         location: location
       };
@@ -234,6 +262,18 @@ function processSales(data, filters = {}) {
     allTimeStats[phone].purchases += 1;
     if (validAmount) {
       allTimeStats[phone].spent += amount;
+    }
+
+    // Track first purchase date (oldest date)
+    if (rowDateParsed) {
+      if (!allTimeStats[phone].firstPurchaseDate) {
+        allTimeStats[phone].firstPurchaseDate = rowDateParsed.toISOString().split('T')[0];
+      } else {
+        const existingFirstDate = new Date(allTimeStats[phone].firstPurchaseDate);
+        if (rowDateParsed < existingFirstDate) {
+          allTimeStats[phone].firstPurchaseDate = rowDateParsed.toISOString().split('T')[0];
+        }
+      }
     }
 
     // Update most recent location
@@ -571,6 +611,75 @@ function processSales(data, filters = {}) {
   const currentDate = new Date().toISOString().split('T')[0];
   const customerIntelligence = generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, purchaseHistory);
 
+  // Build Affiliate Intelligence
+  const affiliateIntelligence = {};
+  rows.forEach((row) => {
+    const agent = agentIdx >= 0 ? normalizeAgentName(row[agentIdx] || 'Unknown') : 'Unknown';
+    const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
+    if (!phone) return;
+
+    if (!affiliateIntelligence[agent]) {
+      affiliateIntelligence[agent] = {
+        name: agent,
+        totalCustomers: new Set(),
+        totalRevenue: 0,
+        totalOrders: 0,
+        activeCustomers: 0,
+        vipCustomers: 0,
+        repeatCustomers: 0,
+        topCustomers: []
+      };
+    }
+
+    affiliateIntelligence[agent].totalCustomers.add(phone);
+    affiliateIntelligence[agent].totalOrders += 1;
+
+    const amountStr = String(amountIdx >= 0 ? (row[amountIdx] || '') : '').replace(/[^0-9.\-]/g, '');
+    const amount = parseFloat(amountStr);
+    if (!isNaN(amount) && amount > 0 && amount <= 100000) {
+      affiliateIntelligence[agent].totalRevenue += amount;
+    }
+
+    // Track active & VIP customers per affiliate
+    if (phone && customerIntelligence.allCustomers) {
+      const customer = customerIntelligence.allCustomers.find(c => c.phone === phone);
+      if (customer) {
+        if (customer.activityStatus === 'Active') {
+          affiliateIntelligence[agent].activeCustomers = 
+            new Set([...affiliateIntelligence[agent].activeCustomers || [], phone]).size;
+        }
+        if (customer.vipStatus?.isVip) {
+          affiliateIntelligence[agent].vipCustomers += 1;
+        }
+        if (customer.allTimeOrders >= 2) {
+          affiliateIntelligence[agent].repeatCustomers = 
+            new Set([...affiliateIntelligence[agent].repeatCustomers || [], phone]).size;
+        }
+      }
+    }
+  });
+
+  // Convert Sets to counts and calculate metrics
+  const affiliateMetrics = {};
+  Object.entries(affiliateIntelligence).forEach(([agent, data]) => {
+    const customerCount = data.totalCustomers.size;
+    const avgOrderValue = data.totalOrders > 0 ? Math.round(data.totalRevenue / data.totalOrders) : 0;
+    const retentionRate = customerCount > 0 ? 
+      Math.round((data.repeatCustomers / customerCount) * 100) : 0;
+
+    affiliateMetrics[agent] = {
+      name: agent,
+      totalCustomers: customerCount,
+      totalRevenue: data.totalRevenue,
+      totalOrders: data.totalOrders,
+      avgOrderValue,
+      activeCustomers: data.activeCustomers,
+      vipCustomers: data.vipCustomers,
+      retentionRate,
+      performanceScore: Math.round((data.totalRevenue / 1000) * (retentionRate / 100))
+    };
+  });
+
   return {
     totalSales,
     totalRevenue,
@@ -596,7 +705,8 @@ function processSales(data, filters = {}) {
     trends,
     recommendations,
     intelligenceBrief: [...anomalies, ...trends, ...recommendations],
-    customerIntelligence
+    customerIntelligence,
+    affiliateMetrics
   };
 }
 
