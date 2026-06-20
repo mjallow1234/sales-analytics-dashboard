@@ -625,9 +625,9 @@ function processSales(data, filters = {}) {
         totalCustomers: new Set(),
         totalRevenue: 0,
         totalOrders: 0,
-        activeCustomers: 0,
+        activeCustomers: new Set(),
         vipCustomers: 0,
-        repeatCustomers: 0,
+        repeatCustomers: new Set(),
         topCustomers: []
       };
     }
@@ -646,15 +646,13 @@ function processSales(data, filters = {}) {
       const customer = customerIntelligence.allCustomers.find(c => c.phone === phone);
       if (customer) {
         if (customer.activityStatus === 'Active') {
-          affiliateIntelligence[agent].activeCustomers = 
-            new Set([...affiliateIntelligence[agent].activeCustomers || [], phone]).size;
+          affiliateIntelligence[agent].activeCustomers.add(phone);
         }
         if (customer.vipStatus?.isVip) {
           affiliateIntelligence[agent].vipCustomers += 1;
         }
         if (customer.allTimeOrders >= 2) {
-          affiliateIntelligence[agent].repeatCustomers = 
-            new Set([...affiliateIntelligence[agent].repeatCustomers || [], phone]).size;
+          affiliateIntelligence[agent].repeatCustomers.add(phone);
         }
       }
     }
@@ -666,7 +664,7 @@ function processSales(data, filters = {}) {
     const customerCount = data.totalCustomers.size;
     const avgOrderValue = data.totalOrders > 0 ? Math.round(data.totalRevenue / data.totalOrders) : 0;
     const retentionRate = customerCount > 0 ? 
-      Math.round((data.repeatCustomers / customerCount) * 100) : 0;
+      Math.round((data.repeatCustomers.size / customerCount) * 100) : 0;
 
     affiliateMetrics[agent] = {
       name: agent,
@@ -674,7 +672,7 @@ function processSales(data, filters = {}) {
       totalRevenue: data.totalRevenue,
       totalOrders: data.totalOrders,
       avgOrderValue,
-      activeCustomers: data.activeCustomers,
+      activeCustomers: data.activeCustomers.size,
       vipCustomers: data.vipCustomers,
       retentionRate,
       performanceScore: Math.round((data.totalRevenue / 1000) * (retentionRate / 100))
