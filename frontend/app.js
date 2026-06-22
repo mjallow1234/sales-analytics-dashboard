@@ -60,6 +60,46 @@ function formatSales(value) {
   return num.toLocaleString();
 }
 
+function getAffiliateNameFromDisplayLabel(label) {
+  if (!label) return label;
+  const parts = label.split(' - ');
+  return parts.length > 1 ? parts.slice(1).join(' - ') : label;
+}
+
+function getAffiliateIdFromDisplayLabel(label) {
+  if (!label) return null;
+  const parts = label.split(' - ');
+  return parts.length > 1 ? parts[0] : null;
+}
+
+function getAffiliateDisplayEntries(data) {
+  if (data.revenueByAffiliateDisplay) {
+    return Object.entries(data.revenueByAffiliateDisplay).map(([label, revenue]) => ({
+      affiliateName: getAffiliateNameFromDisplayLabel(label),
+      affiliateId: getAffiliateIdFromDisplayLabel(label),
+      revenue
+    }));
+  }
+
+  if (Array.isArray(data.affiliateLeaderboard)) {
+    return data.affiliateLeaderboard.map(entry => ({
+      affiliateName: entry.affiliateName || entry.name || entry.affiliateId || entry.affiliate || 'Unknown Affiliate',
+      affiliateId: entry.affiliateId || entry.affiliate || null,
+      revenue: entry.revenue || 0
+    }));
+  }
+
+  if (data.revenueByAffiliate) {
+    return Object.entries(data.revenueByAffiliate).map(([id, revenue]) => ({
+      affiliateName: id,
+      affiliateId: id,
+      revenue
+    }));
+  }
+
+  return [];
+}
+
 function animateCounter(element, finalValue, duration, formatter) {
   duration = duration || 800;
   const fmt = formatter || formatFinance;
@@ -329,20 +369,20 @@ async function loadDashboard(filters = {}) {
 
     // Use revenueByAffiliateDisplay if available (has formatted names), otherwise use affiliateLeaderboard
     let agentLabels, agentValues;
-    if (data.revenueByAffiliateDisplay) {
-      const affiliateEntries = Object.entries(data.revenueByAffiliateDisplay).sort((a, b) => b[1] - a[1]).slice(0, 10);
-      agentLabels = affiliateEntries.map(a => a[0]);
-      agentValues = affiliateEntries.map(a => a[1]);
-    } else if (data.affiliateLeaderboard && data.affiliateLeaderboard.length > 0) {
-      const topAffiliates = data.affiliateLeaderboard.slice(0, 10);
-      agentLabels = topAffiliates.map(a => a.affiliateId);
-      agentValues = topAffiliates.map(a => a.revenue);
-    } else {
-      // Fallback for backward compatibility
-      const topAgents = (data.agentLeaderboard || []).slice(0, 10);
-      agentLabels = topAgents.map(a => a.agent || a.affiliateId);
-      agentValues = topAgents.map(a => a.revenue);
-    }
+    const affiliateEntries = getAffiliateDisplayEntries(data)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+    agentLabels = affiliateEntries.map(entry => entry.affiliateName);
+    agentValues = affiliateEntries.map(entry => entry.revenue);
+    window.affiliateIdToNameMap = Object.fromEntries(
+      affiliateEntries.map(entry => [entry.affiliateId, entry.affiliateName])
+    );
+    window.affiliateNameToIdsMap = affiliateEntries.reduce((map, entry) => {
+      const name = entry.affiliateName;
+      if (!map[name]) map[name] = [];
+      if (entry.affiliateId) map[name].push(entry.affiliateId);
+      return map;
+    }, {});
 
     const salesOverTimeRaw = data.salesOverTime || {};
 
@@ -381,10 +421,11 @@ function generateInsights(data) {
     insights.push(`Average order value is ${Number(avgOrderValue).toLocaleString()} GMD`);
   }
 
-  const topAffiliate = Object.entries(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {})
-    .sort((a, b) => b[1] - a[1])[0];
-  if (topAffiliate) {
-    insights.push(`Top affiliate is ${topAffiliate[0]} with ${formatFinance(topAffiliate[1])}`);
+  const affiliateInsightsEntries = getAffiliateDisplayEntries(data)
+    .sort((a, b) => b.revenue - a.revenue);
+  if (affiliateInsightsEntries.length > 0) {
+    const topAffiliate = affiliateInsightsEntries[0];
+    insights.push(`Top affiliate is ${topAffiliate.affiliateName} with ${formatFinance(topAffiliate.revenue)}`);
   }
 
   const topLocation = Object.entries(data.revenueByLocation || {})
@@ -425,8 +466,8 @@ function generateSmartInsights(data) {
   }
 
   // Top affiliate share
-  const affiliateEntries = Object.entries(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {}).sort((a, b) => b[1] - a[1]);
-  const totalAffiliateRevenue = affiliateEntries.reduce((sum, [, v]) => sum + v, 0);
+  const affiliateEntries = getAffiliateDisplayEntries(data).sort((a, b) => b.revenue - a.revenue);
+  const totalAffiliateRevenue = affiliateEntries.reduce((sum, entry) => sum + entry.revenue, 0);
   if (affiliateEntries.length > 0 && totalAffiliateRevenue > 0) {
     const topAffiliateShare = affiliateEntries[0][1] / totalAffiliateRevenue;
     if (topAffiliateShare > 0.5) {
@@ -661,7 +702,8 @@ function updateTopCustomers(data) {
 }
 
 function populateAgentDropdown(data) {
-  const affiliateLabels = Object.keys(data.revenueByAffiliateDisplay || data.revenueByAffiliate || {});
+  const affiliateEntries = getAffiliateDisplayEntries(data);
+  const affiliateLabels = affiliateEntries.map(entry => entry.affiliateName);
   const agentSelect = document.getElementById('agentFilter');
   if (!agentSelect) return;
   const selected = agentSelect.value;
