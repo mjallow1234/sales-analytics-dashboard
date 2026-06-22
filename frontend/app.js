@@ -100,6 +100,26 @@ function getAffiliateDisplayEntries(data) {
   return [];
 }
 
+async function loadAffiliateDirectory() {
+  try {
+    const res = await fetch('/affiliates');
+    if (!res.ok) {
+      throw new Error(`Failed to load affiliate directory: ${res.status}`);
+    }
+    const payload = await res.json();
+    if (!Array.isArray(payload.affiliates)) {
+      throw new Error('Invalid affiliate directory payload');
+    }
+    window.affiliateDirectory = payload.affiliates.map((affiliate) => ({
+      affiliateId: String(affiliate.affiliateId || affiliate.id || '').trim(),
+      affiliateName: String(affiliate.name || affiliate.Name || affiliate.affiliateName || affiliate.FullName || '').trim()
+    })).filter(entry => entry.affiliateId);
+  } catch (error) {
+    console.warn('Failed to load affiliate directory:', error);
+    window.affiliateDirectory = null;
+  }
+}
+
 function animateCounter(element, finalValue, duration, formatter) {
   duration = duration || 800;
   const fmt = formatter || formatFinance;
@@ -372,20 +392,24 @@ async function loadDashboard(filters = {}) {
 
     // Use revenueByAffiliateDisplay if available (has formatted names), otherwise use affiliateLeaderboard
     let agentLabels, agentValues;
-    const affiliateEntries = getAffiliateDisplayEntries(data)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10);
-    agentLabels = affiliateEntries.map(entry => entry.affiliateName);
-    agentValues = affiliateEntries.map(entry => entry.revenue);
+    const allAffiliateEntries = getAffiliateDisplayEntries(data);
     window.affiliateIdToNameMap = Object.fromEntries(
-      affiliateEntries.map(entry => [entry.affiliateId, entry.affiliateName])
+      allAffiliateEntries
+        .filter(entry => entry.affiliateId)
+        .map(entry => [entry.affiliateId, entry.affiliateName])
     );
-    window.affiliateNameToIdsMap = affiliateEntries.reduce((map, entry) => {
+    window.affiliateNameToIdsMap = allAffiliateEntries.reduce((map, entry) => {
       const name = entry.affiliateName;
       if (!map[name]) map[name] = [];
       if (entry.affiliateId) map[name].push(entry.affiliateId);
       return map;
     }, {});
+
+    const affiliateEntries = allAffiliateEntries
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+    agentLabels = affiliateEntries.map(entry => entry.affiliateName);
+    agentValues = affiliateEntries.map(entry => entry.revenue);
 
     const salesOverTimeRaw = data.salesOverTime || {};
 
@@ -705,7 +729,11 @@ function updateTopCustomers(data) {
 }
 
 function populateAgentDropdown(data) {
-  const affiliateEntries = getAffiliateDisplayEntries(data);
+  const sourceEntries = window.affiliateDirectory || getAffiliateDisplayEntries(data);
+  const affiliateEntries = sourceEntries.map(entry => ({
+    affiliateId: entry.affiliateId || '',
+    affiliateName: entry.affiliateName || entry.affiliateId || 'Unknown Affiliate'
+  }));
   const agentSelect = document.getElementById('agentFilter');
   if (!agentSelect) return;
   const selected = agentSelect.value;
@@ -713,15 +741,23 @@ function populateAgentDropdown(data) {
   const options = [];
 
   affiliateEntries.forEach(entry => {
-    const id = entry.affiliateId || '';
+    let id = entry.affiliateId || '';
     const name = entry.affiliateName || entry.affiliateId || 'Unknown Affiliate';
+
+    if (!id && name === 'Direct Sales') {
+      id = 'DIRECT';
+    }
+    if (id === 'Direct Sales') {
+      id = 'DIRECT';
+    }
+
+    if (!id) return;
     if (!seen.has(id)) {
       seen.add(id);
       options.push({ id, name });
     }
   });
 
-  // Always expose Direct Sales as a filter option.
   if (!seen.has('DIRECT')) {
     options.unshift({ id: 'DIRECT', name: 'Direct Sales' });
   }
@@ -1026,7 +1062,7 @@ function renderCharts(datasets) {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   // ensure dashboard container exists
   const dashboard = document.getElementById('dashboardGrid');
   if (!dashboard) {
@@ -1447,7 +1483,8 @@ window.addEventListener('DOMContentLoaded', () => {
       height: heightVal
     };
     saveActivePreset();
-  });
+    });
+  }
   // quick filter buttons logic
   function clearActiveQuick() {
     document.querySelectorAll('.quick-filters button').forEach(b => b.classList.remove('active'));
@@ -1524,10 +1561,15 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   // initial dashboard load now that DOM is set up
   try {
+    await loadAffiliateDirectory();
+  } catch (err) {
+    console.warn('Affiliate directory load failed', err);
+  }
+
+  try {
     loadDashboard();
   } catch(err) {
     console.error('Dashboard load failed', err);
-  }
   }
 });
 

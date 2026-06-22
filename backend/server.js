@@ -6,7 +6,7 @@ const cors = require('cors');
 const { getSalesData, getProductionData } = require('./sheetsService');
 const { processSales } = require('./analyticsProcessor');
 const { processProduction } = require('./productionProcessor');
-const { initializeLookup, getAffiliateName, getAffiliateNameSync, getCacheStatus } = require('./affiliateLookup');
+const { initializeLookup, getAffiliateName, getAffiliateNameSync, getCacheStatus, getLookupCache } = require('./affiliateLookup');
 
 const app = express();
 app.use(cors());
@@ -31,6 +31,20 @@ app.get('/health', (req, res) => {
     service: 'sales-analytics-dashboard',
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get('/affiliates', async (req, res) => {
+  try {
+    await initializeLookup();
+    const lookup = getLookupCache();
+    const affiliates = Object.entries(lookup)
+      .map(([affiliateId, name]) => ({ affiliateId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    res.json({ affiliates });
+  } catch (error) {
+    console.error('Affiliates endpoint error:', error);
+    res.status(500).json({ error: 'Failed to retrieve affiliate directory' });
+  }
 });
 
 initializeLookup().catch((error) => {
