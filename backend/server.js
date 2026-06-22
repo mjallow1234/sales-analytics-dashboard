@@ -6,7 +6,7 @@ const cors = require('cors');
 const { getSalesData, getProductionData } = require('./sheetsService');
 const { processSales } = require('./analyticsProcessor');
 const { processProduction } = require('./productionProcessor');
-const { initializeLookup, getAffiliateName, getCacheStatus } = require('./affiliateLookup');
+const { initializeLookup, getAffiliateName, getAffiliateNameSync, getCacheStatus } = require('./affiliateLookup');
 
 const app = express();
 app.use(cors());
@@ -66,12 +66,30 @@ app.get('/analytics', async (req, res) => {
     
     // Translate affiliate IDs to names for frontend display
     const revenueByAffiliateWithNames = {};
+    const cacheStatus = getCacheStatus();
+    console.log(`[/analytics] Affiliate cache status: ${cacheStatus.affiliateCount} affiliates, initialized: ${cacheStatus.initialized}`);
+    
     if (analytics.revenueByAffiliate) {
       Object.entries(analytics.revenueByAffiliate).forEach(([affiliateId, revenue]) => {
-        const affiliateName = getAffiliateName(affiliateId);
+        const affiliateName = getAffiliateNameSync(affiliateId);  // ✅ SYNC - no Promise
+        console.log({
+          affiliateId,
+          affiliateName,
+          type: typeof affiliateName,
+          isPromise: affiliateName instanceof Promise,
+          constructor: affiliateName?.constructor?.name
+        });
         const displayKey = `${affiliateId} - ${affiliateName}`;
         revenueByAffiliateWithNames[displayKey] = revenue;
       });
+
+      console.log(
+        JSON.stringify(
+          Object.entries(revenueByAffiliateWithNames).slice(0, 10),
+          null,
+          2
+        )
+      );
     }
     
     // Add performance metadata
@@ -205,7 +223,7 @@ app.post('/ai-query', async (req, res) => {
     const last7DaysSales = ctx.last7DaysSales || 0;
     const previous7DaysRevenue = ctx.previous7DaysRevenue || 0;
     const topAffiliateData = ctx.topAffiliate || { affiliateId: 'N/A', revenue: 0 };
-    const topAffiliateName = getAffiliateName(topAffiliateData.affiliateId);
+    const topAffiliateName = getAffiliateNameSync(topAffiliateData.affiliateId);  // ✅ SYNC - no Promise
     const topLocation = ctx.topLocation || { name: 'N/A', revenue: 0 };
     const anomalies = ctx.anomalies || [];
     const trends = ctx.trends || [];
