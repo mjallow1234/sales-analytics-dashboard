@@ -73,8 +73,16 @@ app.get('/analytics', async (req, res) => {
         }))
       );
 
+      const nameCounts = affiliateNames.reduce((counts, item) => {
+        counts[item.name] = (counts[item.name] || 0) + 1;
+        return counts;
+      }, {});
+
       affiliateNames.forEach(({ affiliateId, name }) => {
-        const displayKey = `${affiliateId} - ${name}`;
+        let displayKey = name;
+        if (nameCounts[name] > 1 && name !== 'Direct Sales' && !name.startsWith('Unknown Affiliate')) {
+          displayKey = `${affiliateId} - ${name}`;
+        }
         revenueByAffiliateWithNames[displayKey] = analytics.revenueByAffiliate[affiliateId];
       });
     }

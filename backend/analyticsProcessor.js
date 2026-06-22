@@ -259,6 +259,7 @@ function processSales(data, filters = {}) {
   }
 
   const rows = data.slice(1); // skip header
+  const DIRECT_SALES_KEY = 'Direct Sales';
 
   // ===== FIRST PASS: ALL-TIME METRICS (No filters) =====
   const allTimeStats = {};
@@ -425,7 +426,8 @@ function processSales(data, filters = {}) {
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
     const name = nameIdx >= 0 ? row[nameIdx] || 'Unknown' : 'Unknown';
     let amountStr = amountIdx >= 0 ? row[amountIdx] : '';
-    const affiliateId = affiliateIdIdx >= 0 ? (row[affiliateIdIdx] || 'Unknown').toString().trim() : 'Unknown';
+    const rawAffiliateValue = affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || '').trim() : '';
+    const affiliateId = rawAffiliateValue || DIRECT_SALES_KEY;
 
     // strip currency text (e.g. "900.00 GMD") and parse
     amountStr = String(amountStr).replace(/[^0-9.\-]/g, '');
@@ -612,6 +614,12 @@ function processSales(data, filters = {}) {
     .map(([affiliateId, revenue]) => ({ affiliateId, revenue }))
     .sort((a, b) => b.revenue - a.revenue);
 
+  const directSalesRevenue = revenueByAffiliate[DIRECT_SALES_KEY] || 0;
+  const affiliateSalesRevenue = totalRevenue - directSalesRevenue;
+  const affiliateContributionPct = totalRevenue > 0
+    ? Number(((affiliateSalesRevenue / totalRevenue) * 100).toFixed(1))
+    : 0;
+
   // --- Anomaly detection, trends, recommendations ---
   const now = new Date();
   const last3Start = new Date(now);
@@ -700,7 +708,8 @@ function processSales(data, filters = {}) {
   // Build Affiliate Intelligence
   const affiliateIntelligence = {};
   rows.forEach((row) => {
-    const affiliateId = affiliateIdIdx >= 0 ? (row[affiliateIdIdx] || 'Unknown').toString().trim() : 'Unknown';
+    const rawAffiliateValue = affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || '').trim() : '';
+    const affiliateId = rawAffiliateValue || DIRECT_SALES_KEY;
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
     if (!phone) return;
 
@@ -767,6 +776,9 @@ function processSales(data, filters = {}) {
   return {
     totalSales,
     totalRevenue,
+    directSalesRevenue,
+    affiliateSalesRevenue,
+    affiliateContributionPct,
     totalCustomers: phones.size,
     revenueByAffiliate,
     affiliateLeaderboard,

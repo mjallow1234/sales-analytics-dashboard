@@ -178,6 +178,9 @@ function getAffiliateNameSync(affiliateId) {
   if (!id) {
     return 'Unknown Affiliate';
   }
+  if (id === 'Direct Sales') {
+    return id;
+  }
 
   return affiliateLookup[id] || `Unknown Affiliate (${id})`;
 }
@@ -186,6 +189,9 @@ async function getAffiliateName(affiliateId) {
   const id = normalizeAffiliateId(affiliateId);
   if (!id) {
     return 'Unknown Affiliate';
+  }
+  if (id === 'Direct Sales') {
+    return id;
   }
 
   if (affiliateLookup[id]) {
