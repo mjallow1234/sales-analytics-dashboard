@@ -18,6 +18,27 @@ function normalizeAgentName(name) {
     .join(' ');
 }
 
+function findHeaderIndex(headers, aliases = []) {
+  if (!Array.isArray(headers)) return -1;
+  const normalized = headers.map((header) => String(header || '').trim().toLowerCase());
+  const normalizedAliases = aliases.map((alias) => String(alias || '').trim().toLowerCase());
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    if (normalizedAliases.includes(normalized[i])) {
+      return i;
+    }
+  }
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    const header = normalized[i];
+    if (normalizedAliases.some((alias) => alias && header.includes(alias))) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
 function calculateDaysSince(lastPurchaseDate, currentDate) {
   if (!lastPurchaseDate) return Infinity;
   const last = new Date(lastPurchaseDate);
@@ -210,15 +231,32 @@ function processSales(data, filters = {}) {
   }
 
   const headers = data[0];
-  const phoneIdx = headers.indexOf('Phone');
-  const amountIdx = headers.indexOf('Amount');
-  const agentIdx = headers.indexOf('Agent');
-  const nameIdx = headers.indexOf('Name');
-  const dateIdx = headers.indexOf('Date');
-  const productIdx = headers.indexOf('Product');
-  const quantityIdx = headers.indexOf('Quantity');
-  const locationIdx = headers.indexOf('Address');
-  const affiliateIdIdx = headers.indexOf('Affiliate ID');
+  const headerNames = headers.map((header) => String(header || '').trim());
+  const phoneIdx = findHeaderIndex(headers, ['Phone']);
+  const amountIdx = findHeaderIndex(headers, ['Amount', 'Revenue']);
+  const agentIdx = findHeaderIndex(headers, ['Agent', 'Agent Name']);
+  const nameIdx = findHeaderIndex(headers, ['Name', 'Customer Name']);
+  const dateIdx = findHeaderIndex(headers, ['Date', 'Order Date', 'Purchase Date']);
+  const productIdx = findHeaderIndex(headers, ['Product', 'Item']);
+  const quantityIdx = findHeaderIndex(headers, ['Quantity', 'Qty', 'Units']);
+  const locationIdx = findHeaderIndex(headers, ['Address', 'Location']);
+  const detectedAffiliateIdIdx = findHeaderIndex(headers, [
+    'Affiliate ID',
+    'affiliate id',
+    'affiliate_id',
+    'affiliateid',
+    'Affiliate Code',
+    'Referral ID',
+    'Partner ID',
+    'Referrer'
+  ]);
+  let affiliateIdIdx = detectedAffiliateIdIdx;
+  const affiliateHeaderDetected = detectedAffiliateIdIdx >= 0;
+  const affiliateHeaderFallbacked = detectedAffiliateIdIdx < 0 && headers.length >= 12;
+  if (affiliateIdIdx < 0 && headers.length >= 12) {
+    // Fallback to the expected Sales sheet column L if the header row is missing or renamed.
+    affiliateIdIdx = 11;
+  }
 
   const rows = data.slice(1); // skip header
 
@@ -330,7 +368,28 @@ function processSales(data, filters = {}) {
   // track purchase history per customer (for drawer)
   const purchaseHistory = {};
 
-  const first20AffiliateIds = rows.slice(0, 20).map(row => affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || 'Unknown').trim() : 'Unknown');
+  const sampleAffiliateIds = rows.slice(0, 20).map((row) => {
+    if (affiliateIdIdx >= 0) {
+      return String(row[affiliateIdIdx] || 'Unknown').trim();
+    }
+    return 'Unknown';
+  });
+
+  const firstTenRowDiagnostics = rows.slice(0, 10).map((row, index) => {
+    const rawAffiliateValue = affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || '').trim() : '';
+    const rawAmount = amountIdx >= 0 ? String(row[amountIdx] || '') : '';
+    const parsedAmount = Number(String(rawAmount).replace(/[^0-9.\-]/g, ''));
+    return {
+      rowNumber: index + 2,
+      affiliateColumnHeader: affiliateIdIdx >= 0 ? headerNames[affiliateIdIdx] : null,
+      affiliateColumnValue: rawAffiliateValue,
+      fullRowColumnLValue: String(row[11] || '').trim(),
+      amount: Number.isNaN(parsedAmount) ? rawAmount : parsedAmount,
+      customerPhone: phoneIdx >= 0 ? String(row[phoneIdx] || '').trim() : null
+    };
+  });
+
+  const affiliateHeaderWasMissing = detectedAffiliateIdIdx < 0;
 
   rows.forEach((row) => {
     // parse date once for filtering and growth
@@ -484,6 +543,35 @@ function processSales(data, filters = {}) {
     }
   });
 
+  const extractedAffiliateIds = rows.map((row) => {
+    if (affiliateIdIdx >= 0) {
+      return String(row[affiliateIdIdx] || '').trim();
+    }
+    return '';
+  });
+  const validAffiliateIds = extractedAffiliateIds.filter((id) => id);
+  const blankAffiliateIds = extractedAffiliateIds.length - validAffiliateIds.length;
+  const uniqueAffiliateIds = [...new Set(validAffiliateIds)].sort();
+
+  const shouldLogAffiliateDiagnostics = !affiliateHeaderDetected || blankAffiliateIds === extractedAffiliateIds.length || (Object.keys(revenueByAffiliate).length === 1 && revenueByAffiliate.Unknown);
+  if (shouldLogAffiliateDiagnostics) {
+    console.warn('[analyticsProcessor] affiliate aggregation diagnostics');
+    console.warn('  headers:', headerNames);
+    console.warn('  detectedAffiliateIdIdx:', detectedAffiliateIdIdx);
+    console.warn('  affiliateIdIdx (used):', affiliateIdIdx);
+    console.warn('  affiliateHeaderDetected:', affiliateHeaderDetected);
+    console.warn('  affiliateHeaderWasMissing:', affiliateHeaderWasMissing);
+    console.warn('  affiliateHeaderFallbacked:', affiliateHeaderFallbacked);
+    console.warn('  sampleAffiliateIds:', sampleAffiliateIds);
+    console.warn('  firstTenRowDiagnostics:', firstTenRowDiagnostics);
+    console.warn('  extractedAffiliateIdsCount:', extractedAffiliateIds.length);
+    console.warn('  validAffiliateIds:', validAffiliateIds.length);
+    console.warn('  blankAffiliateIds:', blankAffiliateIds);
+    console.warn('  uniqueAffiliateIds:', uniqueAffiliateIds);
+    console.warn('  revenueByAffiliate:', revenueByAffiliate);
+    console.warn('  revenueByAffiliateKeysLength:', Object.keys(revenueByAffiliate).length);
+    console.warn('  revenueByAffiliateEntriesPreview:', Object.entries(revenueByAffiliate).slice(0, 20));
+  }
 
   // compute customer-level metrics for filtered period
   let repeatCustomers = 0;
