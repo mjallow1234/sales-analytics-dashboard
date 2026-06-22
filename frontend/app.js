@@ -124,7 +124,7 @@ let activeQuickFilter = null;
 
 // chart-driven filters for cross-filtering
 let chartFilters = {
-  agent: null,
+  affiliateId: null,
   product: null,
   location: null
 };
@@ -214,8 +214,11 @@ function updateFilterSummary(filters) {
   const summary = document.getElementById('filterSummary');
   if (!summary) return;
   const parts = [];
-  if (filters.agent) {
-    parts.push(`Affiliate: ${filters.agent}`);
+  if (filters.affiliateId) {
+    const affiliateName = filters.affiliateId === 'DIRECT'
+      ? 'Direct Sales'
+      : window.affiliateIdToNameMap?.[filters.affiliateId] || filters.affiliateId;
+    parts.push(`Affiliate: ${affiliateName}`);
   }
   if (filters.product) {
     parts.push(`Product: ${filters.product}`);
@@ -342,7 +345,7 @@ async function loadDashboard(filters = {}) {
     console.log('Analytics query:', url);
     console.log('Start Date:', finalFilters.startDate || '(none)');
     console.log('End Date:', finalFilters.endDate || '(none)');
-    console.log('Agent:', finalFilters.agent || '(none)');
+    console.log('affiliateId:', finalFilters.affiliateId || '(none)');
     console.log('API URL:', url);
 
     const res = await fetch(url);
@@ -703,16 +706,32 @@ function updateTopCustomers(data) {
 
 function populateAgentDropdown(data) {
   const affiliateEntries = getAffiliateDisplayEntries(data);
-  const affiliateLabels = affiliateEntries.map(entry => entry.affiliateName);
   const agentSelect = document.getElementById('agentFilter');
   if (!agentSelect) return;
   const selected = agentSelect.value;
+  const seen = new Set();
+  const options = [];
+
+  affiliateEntries.forEach(entry => {
+    const id = entry.affiliateId || '';
+    const name = entry.affiliateName || entry.affiliateId || 'Unknown Affiliate';
+    if (!seen.has(id)) {
+      seen.add(id);
+      options.push({ id, name });
+    }
+  });
+
+  // Always expose Direct Sales as a filter option.
+  if (!seen.has('DIRECT')) {
+    options.unshift({ id: 'DIRECT', name: 'Direct Sales' });
+  }
+
   agentSelect.innerHTML = '<option value="">All Affiliates</option>';
-  affiliateLabels.forEach(a => {
+  options.forEach(({ id, name }) => {
     const opt = document.createElement('option');
-    opt.value = a;
-    opt.textContent = a;
-    if (a === selected) opt.selected = true;
+    opt.value = id;
+    opt.textContent = name;
+    if (id === selected) opt.selected = true;
     agentSelect.appendChild(opt);
   });
 }
@@ -787,11 +806,14 @@ function renderCharts(datasets) {
         onClick: (evt, elements) => {
           if (!elements.length) return;
           const index = elements[0].index;
-          const affiliate = affiliateLabels[index];
-          if (chartFilters.agent === affiliate) {
-            chartFilters.agent = null;
+          const affiliateName = affiliateLabels[index];
+          const matchingIds = window.affiliateNameToIdsMap?.[affiliateName] || [];
+          const affiliateId = matchingIds.length === 1 ? matchingIds[0] : null;
+          if (!affiliateId) return;
+          if (chartFilters.affiliateId === affiliateId) {
+            chartFilters.affiliateId = null;
           } else {
-            chartFilters.agent = affiliate;
+            chartFilters.affiliateId = affiliateId;
           }
           loadDashboard();
         }
@@ -1064,11 +1086,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const agentEl = document.getElementById('agentFilter');
     const startDate = startEl ? startEl.value : '';
     const endDate = endEl ? endEl.value : '';
-    const agent = agentEl ? agentEl.value : '';
+    const affiliateId = agentEl ? agentEl.value : '';
     const filters = {};
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
-    if (agent) filters.agent = agent;
+    if (affiliateId) filters.affiliateId = affiliateId;
     loadDashboard(filters);
   }
 
@@ -1374,7 +1396,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       chartFilters = {
-        agent: null,
+        affiliateId: null,
         product: null,
         location: null
       };
@@ -1386,7 +1408,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const agent = document.getElementById('agentFilter');
       if (start) start.value = '';
       if (end) end.value = '';
-      if (agent) agent.value = 'All Agents';
+      if (agent) agent.value = '';
       try { loadDashboard(); } catch (e) { console.error('Dashboard load failed on clear', e); }
     });
   }

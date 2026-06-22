@@ -44,8 +44,8 @@ const CACHE_TTL = 300000; // 5 minutes
 app.get('/analytics', async (req, res) => {
   const requestStartTime = Date.now();
   try {
-    const { startDate, endDate, agent } = req.query;
-    const cacheKey = JSON.stringify({ startDate, endDate, agent });
+    const { startDate, endDate, affiliateId } = req.query;
+    const cacheKey = JSON.stringify({ startDate, endDate, affiliateId });
 
     const cached = analyticsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -59,7 +59,7 @@ app.get('/analytics', async (req, res) => {
     const sheetsTime = Date.now() - sheetsStartTime;
 
     const processingStartTime = Date.now();
-    const analytics = processSales(rows, { startDate, endDate, agent });
+    const analytics = processSales(rows, { startDate, endDate, affiliateId });
     const processingTime = Date.now() - processingStartTime;
 
     await initializeLookup();

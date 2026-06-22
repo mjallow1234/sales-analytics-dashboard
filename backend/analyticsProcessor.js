@@ -200,13 +200,10 @@ function generateCustomerIntelligence(allTimeStats, filteredStats, currentDate, 
 }
 
 function processSales(data, filters = {}) {
-  const { startDate, endDate, agent: filterAgent } = filters;
+  const { startDate, endDate, affiliateId: filterAffiliateId = '' } = filters;
 
-  // Debug logging for date filtering
-  let normalizedAgent;
-  if (filterAgent) {
-    normalizedAgent = normalizeAgentName(filterAgent);
-  }
+  const normalizedAffiliateId = filterAffiliateId ? String(filterAffiliateId).trim() : '';
+  const isDirectFilter = normalizedAffiliateId === 'DIRECT';
 
   if (!Array.isArray(data) || data.length === 0) {
     return {
@@ -259,11 +256,22 @@ function processSales(data, filters = {}) {
   }
 
   const rows = data.slice(1); // skip header
+  const rowsBeforeFilter = rows.length;
   const DIRECT_SALES_KEY = 'Direct Sales';
+  const filteredRows = normalizedAffiliateId
+    ? rows.filter((row) => {
+        const rawAffiliateValue = affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || '').trim() : '';
+        if (isDirectFilter) {
+          return rawAffiliateValue === '';
+        }
+        return rawAffiliateValue === normalizedAffiliateId;
+      })
+    : rows;
+  const rowsAfterFilter = filteredRows.length;
 
   // ===== FIRST PASS: ALL-TIME METRICS (No filters) =====
   const allTimeStats = {};
-  rows.forEach((row) => {
+  filteredRows.forEach((row) => {
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
     if (!phone) return;
 
@@ -392,7 +400,7 @@ function processSales(data, filters = {}) {
 
   const affiliateHeaderWasMissing = detectedAffiliateIdIdx < 0;
 
-  rows.forEach((row) => {
+  filteredRows.forEach((row) => {
     // parse date once for filtering and growth
     let rowDateParsed = null;
     if (dateIdx >= 0) {
@@ -405,7 +413,7 @@ function processSales(data, filters = {}) {
       }
     }
 
-    // apply filters first (date range and agent)
+    // apply filters first (date range only)
     if (startDate || endDate) {
       if (!rowDateParsed) {
         return; // no valid date: can't evaluate range
@@ -420,8 +428,8 @@ function processSales(data, filters = {}) {
         if (rowTime > endTime) return;
       }
     }
-    // Note: agent filter deprecated in favor of affiliate ID-based analytics
-    // If needed, can be re-implemented with affiliateId filtering
+    // Note: affiliateId filtering is applied before this loop.
+    // If needed, add additional filters here.
 
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
     const name = nameIdx >= 0 ? row[nameIdx] || 'Unknown' : 'Unknown';
@@ -692,7 +700,7 @@ function processSales(data, filters = {}) {
   // Recommendations
   const recommendations = [];
   if (previous7DaysRevenue > 0 && last7DaysRevenue < previous7DaysRevenue) {
-    recommendations.push('\ud83d\udc49 Increase promotions or agent incentives to boost short-term sales');
+    recommendations.push('\ud83d\udc49 Increase promotions or affiliate incentives to boost short-term sales');
   }
   if (totalRevenue > 0 && topAffiliateRevenue / totalRevenue > 0.5) {
     recommendations.push('\ud83d\udc49 Distribute leads more evenly across affiliates to reduce dependency risk');
@@ -707,7 +715,7 @@ function processSales(data, filters = {}) {
 
   // Build Affiliate Intelligence
   const affiliateIntelligence = {};
-  rows.forEach((row) => {
+  filteredRows.forEach((row) => {
     const rawAffiliateValue = affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || '').trim() : '';
     const affiliateId = rawAffiliateValue || DIRECT_SALES_KEY;
     const phone = phoneIdx >= 0 ? row[phoneIdx] : undefined;
