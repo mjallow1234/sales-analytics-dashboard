@@ -33,66 +33,53 @@ app.get('/health', (req, res) => {
   });
 });
 
+initializeLookup().catch((error) => {
+  console.error('[affiliateLookup] initial cache load failed:', error);
+});
+
 const analyticsCache = new Map();
 const productionCache = new Map();
 const CACHE_TTL = 300000; // 5 minutes
 
 app.get('/analytics', async (req, res) => {
-  console.log('Analytics request received');
   const requestStartTime = Date.now();
   try {
     const { startDate, endDate, agent } = req.query;
     const cacheKey = JSON.stringify({ startDate, endDate, agent });
 
-    // Serve from cache if recent
     const cached = analyticsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       const cacheHitTime = Date.now() - requestStartTime;
-      console.log(`Cache HIT - served in ${cacheHitTime}ms`);
       const response = { ...cached.data, _meta: { ...cached.data._meta, cacheHit: true, responseTimeMs: cacheHitTime } };
       return res.json(response);
     }
 
-    console.log('Cache MISS - refreshing analytics');
     const sheetsStartTime = Date.now();
     const rows = await getSalesData();
     const sheetsTime = Date.now() - sheetsStartTime;
-    
+
     const processingStartTime = Date.now();
     const analytics = processSales(rows, { startDate, endDate, agent });
     const processingTime = Date.now() - processingStartTime;
 
-    const totalTime = Date.now() - requestStartTime;
-    
-    // Translate affiliate IDs to names for frontend display
-    const revenueByAffiliateWithNames = {};
-    const cacheStatus = getCacheStatus();
-    console.log(`[/analytics] Affiliate cache status: ${cacheStatus.affiliateCount} affiliates, initialized: ${cacheStatus.initialized}`);
-    
-    if (analytics.revenueByAffiliate) {
-      Object.entries(analytics.revenueByAffiliate).forEach(([affiliateId, revenue]) => {
-        const affiliateName = getAffiliateNameSync(affiliateId);  // ✅ SYNC - no Promise
-        console.log({
-          affiliateId,
-          affiliateName,
-          type: typeof affiliateName,
-          isPromise: affiliateName instanceof Promise,
-          constructor: affiliateName?.constructor?.name
-        });
-        const displayKey = `${affiliateId} - ${affiliateName}`;
-        revenueByAffiliateWithNames[displayKey] = revenue;
-      });
+    await initializeLookup();
 
-      console.log(
-        JSON.stringify(
-          Object.entries(revenueByAffiliateWithNames).slice(0, 10),
-          null,
-          2
-        )
+    const revenueByAffiliateWithNames = {};
+    if (analytics.revenueByAffiliate) {
+      const affiliateNames = await Promise.all(
+        Object.keys(analytics.revenueByAffiliate).map(async (affiliateId) => ({
+          affiliateId,
+          name: await getAffiliateName(affiliateId)
+        }))
       );
+
+      affiliateNames.forEach(({ affiliateId, name }) => {
+        const displayKey = `${affiliateId} - ${name}`;
+        revenueByAffiliateWithNames[displayKey] = analytics.revenueByAffiliate[affiliateId];
+      });
     }
-    
-    // Add performance metadata
+
+    const totalTime = Date.now() - requestStartTime;
     const response = {
       ...analytics,
       revenueByAffiliateDisplay: revenueByAffiliateWithNames,
@@ -114,69 +101,6 @@ app.get('/analytics', async (req, res) => {
     res.status(500).json({
       error: 'Analytics service unavailable',
       message: 'Failed to retrieve analytics data'
-    });
-  }
-});
-
-// TEMPORARY DIAGNOSTIC ENDPOINT - For affiliate migration validation
-// Run on production VPS where Google credentials are available
-app.get('/diagnostic', async (req, res) => {
-  try {
-    const rows = await getSalesData();
-    const analytics = processSales(rows);
-    const cacheStatus = getCacheStatus();
-    
-    // Get first 5 affiliate IDs from the data
-    const affiliateIds = new Set();
-    rows.slice(1, 50).forEach(row => {
-      const affiliateIdIdx = rows[0].indexOf('Affiliate ID');
-      if (affiliateIdIdx >= 0 && row[affiliateIdIdx]) {
-        affiliateIds.add(row[affiliateIdIdx]);
-      }
-      if (affiliateIds.size >= 5) return;
-    });
-    
-    // Get first 5 affiliate mappings from cache
-    const firstFiveMappings = {};
-    const cache = cacheStatus.cache || {};
-    let count = 0;
-    for (const [id, name] of Object.entries(cache)) {
-      if (count >= 5) break;
-      firstFiveMappings[id] = name;
-      count++;
-    }
-    
-    // Build response with diagnostic data
-    res.json({
-      diagnostic: {
-        timestamp: new Date().toISOString(),
-        sheetHeaders: (rows[0] || []).map(h => h || ''),
-        first5AffiliateIds: Array.from(affiliateIds),
-        affiliateCacheSize: cacheStatus.affiliateCount || 0,
-        first5AffiliateMappings: firstFiveMappings,
-        revenueByAffiliateKeys: Object.keys(analytics.revenueByAffiliate || {}).slice(0, 10),
-        revenueByAffiliateSample: (() => {
-          const sample = {};
-          let count = 0;
-          for (const [id, revenue] of Object.entries(analytics.revenueByAffiliate || {})) {
-            if (count >= 5) break;
-            sample[id] = revenue;
-            count++;
-          }
-          return sample;
-        })(),
-        topAffiliate: analytics.topAffiliate || null,
-        affiliateLeaderboardSample: (analytics.affiliateLeaderboard || []).slice(0, 5),
-        totalRevenueByAffiliate: Object.values(analytics.revenueByAffiliate || {}).reduce((a, b) => a + b, 0),
-        totalAffiliatesInData: Object.keys(analytics.revenueByAffiliate || {}).length
-      }
-    });
-  } catch (error) {
-    console.error('Diagnostic endpoint error:', error);
-    res.status(500).json({
-      error: 'Diagnostic failed',
-      message: error.message,
-      stack: error.stack
     });
   }
 });
@@ -206,8 +130,6 @@ function parseQuery(question) {
 
 app.post('/ai-query', async (req, res) => {
   const { question, context, type } = req.body;
-
-  console.log('AI TYPE:', type); // DEBUG
 
   if (!question && !type) {
     return res.status(400).json({ error: 'Question or type is required' });
@@ -339,16 +261,13 @@ app.post('/ai-query', async (req, res) => {
 });
 
 app.get('/production-analytics', async (req, res) => {
-  console.log('Production analytics request received');
   try {
     const cacheKey = 'prod:default';
     const cached = productionCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('Using cached production analytics');
       return res.json(cached.data);
     }
 
-    console.log('Refreshing production analytics');
     const rows = await getProductionData();
     const analytics = processProduction(rows);
 

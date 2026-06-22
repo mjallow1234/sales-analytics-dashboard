@@ -1,5 +1,4 @@
 // Data processing logic
-const { initializeLookup, getAffiliateName, getCacheStatus } = require('./affiliateLookup');
 
 /**
  * Process sales rows fetched from Google Sheets.
@@ -183,8 +182,6 @@ function processSales(data, filters = {}) {
   const { startDate, endDate, agent: filterAgent } = filters;
 
   // Debug logging for date filtering
-  console.log('Date filter:', startDate, '→', endDate);
-
   let normalizedAgent;
   if (filterAgent) {
     normalizedAgent = normalizeAgentName(filterAgent);
@@ -224,7 +221,6 @@ function processSales(data, filters = {}) {
   const affiliateIdIdx = headers.indexOf('Affiliate ID');
 
   const rows = data.slice(1); // skip header
-  console.log('Rows before filter:', rows.length);
 
   // ===== FIRST PASS: ALL-TIME METRICS (No filters) =====
   const allTimeStats = {};
@@ -333,6 +329,8 @@ function processSales(data, filters = {}) {
   const revenueByLocation = {};
   // track purchase history per customer (for drawer)
   const purchaseHistory = {};
+
+  const first20AffiliateIds = rows.slice(0, 20).map(row => affiliateIdIdx >= 0 ? String(row[affiliateIdIdx] || 'Unknown').trim() : 'Unknown');
 
   rows.forEach((row) => {
     // parse date once for filtering and growth
@@ -486,7 +484,6 @@ function processSales(data, filters = {}) {
     }
   });
 
-  console.log('Rows after filter:', totalSales, '(sales counted)');
 
   // compute customer-level metrics for filtered period
   let repeatCustomers = 0;
