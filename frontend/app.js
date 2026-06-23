@@ -342,10 +342,10 @@ async function loadDashboard(filters = {}) {
   try {
     showLoadingState();
 
-    // merge chart filters with passed filters, but strip null/empty values
+    // merge chart filters with passed filters, but let user-selected filters win and strip null/empty values
     const mergedFilters = {
-      ...filters,
-      ...chartFilters
+      ...chartFilters,
+      ...filters
     };
     const finalFilters = {};
     Object.entries(mergedFilters).forEach(([key, value]) => {
